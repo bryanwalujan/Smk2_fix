@@ -15,6 +15,7 @@
          <h2>Dashboard LMS Guru</h2>
          <div style="margin-bottom: 20px;">
              <a href="{{ route('teacher.dashboard') }}">Kembali ke Dashboard</a>
+             <a href="{{ route('teacher.lms.change_password') }}">Ganti Password</a>
              <form action="{{ route('logout') }}" method="POST" class="logout-form">
                  @csrf
                  <button type="submit" style="background: none; border: none; color: blue; cursor: pointer; padding: 0;">Logout</button>

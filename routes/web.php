@@ -55,6 +55,8 @@
              Route::post('/sessions/{classSession}/materials', [TeacherLmsController::class, 'storeMaterial'])->name('store_material');
              Route::get('/sessions/{classSession}/assignments/create', [TeacherLmsController::class, 'createAssignment'])->name('create_assignment');
              Route::post('/sessions/{classSession}/assignments', [TeacherLmsController::class, 'storeAssignment'])->name('store_assignment');
+             Route::get('/change-password', [TeacherLmsController::class, 'showChangePasswordForm'])->name('change_password');
+             Route::post('/change-password', [TeacherLmsController::class, 'changePassword'])->name('change_password.store');
          });
 
          Route::prefix('student/lms')->name('student.lms.')->middleware('role:student')->group(function () {
