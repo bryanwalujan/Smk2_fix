@@ -41,7 +41,7 @@
                              <tr>
                                  <td>{{ $session->title }}</td>
                                  <td>{{ $session->classroom->full_name }}</td>
-                                 <td>{{ $session->start_time }} - {{ $session->end_time }}</td>
+                                 <td>{{ \Carbon\Carbon::parse($session->start_time)->translatedFormat('l H:i') }}-{{ \Carbon\Carbon::parse($session->end_time)->format('H:i') }}</td>
                                  <td>
                                      <a href="{{ route('student.lms.show_session', $session) }}">Lihat</a>
                                  </td>

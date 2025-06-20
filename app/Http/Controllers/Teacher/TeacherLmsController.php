@@ -80,7 +80,7 @@
          public function showSession(ClassSession $classSession)
          {
              $this->authorizeTeacher($classSession);
-             $classSession->load('materials', 'assignments');
+             $classSession->load('materials', 'assignments.submissions');
              return view('teacher.lms.show_session', compact('classSession'));
          }
 
@@ -96,7 +96,7 @@
              $request->validate([
                  'title' => 'required|string|max:100',
                  'content' => 'nullable|string',
-                 'file' => 'nullable|file|mimes:pdf,doc,docx,ppt,pptx|max:2048',
+                 'file' => 'nullable|file|mimes:pdf,doc,docx,ppt,pptx,jpg,jpeg,png,gif,mp4,avi,mov,mkv|max:262144',
              ]);
 
              $data = $request->only(['title', 'content']);
@@ -134,6 +134,13 @@
              ]);
 
              return redirect()->route('teacher.lms.show_session', $classSession)->with('success', 'Tugas berhasil ditambahkan.');
+         }
+
+         public function showSubmissions(Assignment $assignment)
+         {
+             $this->authorizeTeacher($assignment->classSession);
+             $assignment->load(['submissions.student.user', 'submissions.student.classroom', 'classSession']);
+             return view('teacher.lms.show_submissions', compact('assignment'));
          }
 
          public function showChangePasswordForm()
