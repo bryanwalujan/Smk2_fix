@@ -15,6 +15,7 @@
          <h2>Dashboard LMS Guru</h2>
          <div style="margin-bottom: 20px;">
              <a href="{{ route('teacher.dashboard') }}">Kembali ke Dashboard</a>
+             <a href="{{ route('teacher.lms.change_password') }}">Ganti Password</a>
              <form action="{{ route('logout') }}" method="POST" class="logout-form">
                  @csrf
                  <button type="submit" style="background: none; border: none; color: blue; cursor: pointer; padding: 0;">Logout</button>
@@ -47,7 +48,7 @@
                              <td>{{ $session->title }}</td>
                              <td>{{ $session->classroom->full_name }}</td>
                              <td>{{ $session->subject_name }}</td>
-                             <td>{{ $session->start_time }} - {{ $session->end_time }}</td>
+                             <td>{{ \Carbon\Carbon::parse($session->start_time)->translatedFormat('l H:i') }}-{{ \Carbon\Carbon::parse($session->end_time)->format('H:i') }}</td>
                              <td>
                                  <a href="{{ route('teacher.lms.show_session', $session) }}">Lihat</a>
                                  <a href="{{ route('teacher.lms.edit_session', $session) }}">Edit</a>

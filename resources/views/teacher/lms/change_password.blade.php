@@ -1,12 +1,12 @@
 <!DOCTYPE html>
      <html lang="id">
      <head>
-         <title>Tambah Materi</title>
+         <title>Ganti Password</title>
          <style>
              body { font-family: Arial, sans-serif; margin: 50px; }
              .form-group { margin-bottom: 15px; }
              label { display: block; margin-bottom: 5px; }
-             input, textarea { padding: 5px; width: 100%; max-width: 500px; }
+             input { padding: 5px; width: 100%; max-width: 300px; }
              button { padding: 10px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
              .error { color: red; }
              .logout-form { display: inline; }
@@ -14,13 +14,13 @@
      </head>
      <body>
          <div style="margin-bottom: 20px;">
-             <a href="{{ route('teacher.lms.show_session', $classSession) }}">Kembali ke Sesi</a>
+             <a href="{{ route('teacher.lms.index') }}">Kembali ke LMS</a>
              <form action="{{ route('logout') }}" method="POST" class="logout-form">
                  @csrf
                  <button type="submit" style="background: none; border: none; color: blue; cursor: pointer; padding: 0;">Logout</button>
              </form>
          </div>
-         <h2>Tambah Materi</h2>
+         <h2>Ganti Password</h2>
          @if ($errors->any())
              <div class="error">
                  <ul>
@@ -30,21 +30,26 @@
                  </ul>
              </div>
          @endif
-         <form method="POST" action="{{ route('teacher.lms.store_material', $classSession) }}" enctype="multipart/form-data">
+         @if (session('success'))
+             <div style="color: green; margin-bottom: 15px;">
+                 {{ session('success') }}
+             </div>
+         @endif
+         <form method="POST" action="{{ route('teacher.lms.change_password.store') }}">
              @csrf
              <div class="form-group">
-                 <label for="title">Judul Materi</label>
-                 <input type="text" name="title" id="title" value="{{ old('title') }}" required>
+                 <label for="current_password">Password Lama</label>
+                 <input type="password" name="current_password" id="current_password" required>
              </div>
              <div class="form-group">
-                 <label for="content">Konten</label>
-                 <textarea name="content" id="content">{{ old('content') }}</textarea>
+                 <label for="new_password">Password Baru</label>
+                 <input type="password" name="new_password" id="new_password" required>
              </div>
              <div class="form-group">
-                 <label for="file">File (PDF, DOC, PPT, JPG, PNG, GIF, MP4, AVI, MOV, MKV, maks 256 MB)</label>
-                 <input type="file" name="file" id="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.mp4,.avi,.mov,.mkv">
+                 <label for="new_password_confirmation">Konfirmasi Password Baru</label>
+                 <input type="password" name="new_password_confirmation" id="new_password_confirmation" required>
              </div>
-             <button type="submit">Simpan</button>
+             <button type="submit">Ganti Password</button>
          </form>
      </body>
      </html>

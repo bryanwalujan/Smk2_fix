@@ -22,22 +22,22 @@
          <h2>Sesi: {{ $classSession->title }}</h2>
          <p>Kelas: {{ $classSession->classroom->full_name }}</p>
          <p>Mata Pelajaran: {{ $classSession->subject_name }}</p>
-         <p>Waktu: {{ $classSession->start_time }} - {{ $classSession->end_time }}</p>
+         <p>Waktu: {{ \Carbon\Carbon::parse($classSession->start_time)->translatedFormat('l H:i') }}-{{ \Carbon\Carbon::parse($classSession->end_time)->format('H:i') }}</p>
          <h3>Materi</h3>
          @if ($classSession->materials->isEmpty())
              <p>Tidak ada materi.</p>
          @else
              <ul>
                  @foreach ($classSession->materials as $material)
-                     <li>
-                         {{ $material->title }}
-                         @if ($material->file_path)
-                             <a href="{{ Storage::url($material->file_path) }}" target="_blank">Unduh</a>
-                         @endif
-                         @if ($material->content)
-                             <p>{{ $material->content }}</p>
-                         @endif
-                     </li>
+                 <li>
+                     {{ $material->title }}
+                     @if ($material->file_path)
+                         <a href="{{ Storage::url($material->file_path) }}" target="_blank">Unduh</a>
+                     @endif
+                     @if ($material->content)
+                         <p>{{ $material->content }}</p>
+                     @endif
+                 </li>
                  @endforeach
              </ul>
          @endif
@@ -60,7 +60,7 @@
                          <tr>
                              <td>{{ $assignment->title }}</td>
                              <td>{{ $assignment->description }}</td>
-                             <td>{{ $assignment->deadline }}</td>
+                             <td>{{ \Carbon\Carbon::parse($assignment->deadline)->translatedFormat('l H:i') }}</td>
                              <td>
                                  @if ($assignment->submissions->where('student_id', auth()->user()->student->id)->isNotEmpty())
                                      Sudah Dikumpulkan
@@ -72,7 +72,7 @@
                              </td>
                              <td>
                                  @if ($assignment->submissions->where('student_id', auth()->user()->student->id)->isEmpty() && $assignment->deadline >= now())
-                                     <a href="{{ route('student.lms.create_submission', $assignment) }}">Kumpulkan</a>
+                                     <a href="{{ route('student.lms.create_submission', $assignment) }}">Kumpulkan"</a>
                                  @endif
                              </td>
                          </tr>
@@ -81,4 +81,3 @@
              </table>
          @endif
      </body>
-     </html>

@@ -11,7 +11,11 @@
 <body>
     <h2>Selamat Datang, {{ auth()->user()->name }}</h2>
     <h3>QR Code Absensi Anda</h3>
-    {!! \SimpleSoftwareIO\QrCode\Facades\QrCode::size(200)->generate(auth()->user()->barcode) !!}
+    @if(file_exists(public_path('qrcodes/teacher_' . auth()->user()->barcode . '.svg')))
+        <img src="{{ asset('qrcodes/teacher_' . auth()->user()->barcode . '.svg') }}" alt="QR Code" class="qr-preview rounded border border-gray-200">
+    @else
+        <p>QR Code belum tersedia. Silakan hubungi administrator.</p>
+    @endif
     <br>
     <a href="{{ route('teacher.lms.index') }}">Kelola LMS</a>
 </body>
