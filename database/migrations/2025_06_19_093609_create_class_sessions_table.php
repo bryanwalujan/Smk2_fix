@@ -13,9 +13,9 @@ return new class extends Migration
             $table->foreignId('teacher_id')->constrained()->onDelete('cascade');
             $table->foreignId('classroom_id')->constrained()->onDelete('cascade');
             $table->string('subject_name');
-            $table->string('title');
-            $table->dateTime('start_time');
-            $table->dateTime('end_time');
+            $table->enum('day_of_week', ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']);
+            $table->time('start_time');
+            $table->time('end_time');
             $table->timestamps();
         });
     }

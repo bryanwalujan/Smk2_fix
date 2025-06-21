@@ -40,7 +40,7 @@ class TeacherController extends Controller
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
-                'password' => Hash::make($request->nip), // Password set to NIP
+                'password' => Hash::make($request->nip),
                 'role' => 'teacher',
             ]);
 
@@ -68,13 +68,11 @@ class TeacherController extends Controller
             // Proses subjects dan classroom hanya jika classroom diisi
             if ($request->filled('classroom')) {
                 $subjects = array_map('trim', explode(',', $request->subjects));
-                $pivotData = [];
                 foreach ($subjects as $subject_name) {
                     if (!empty($subject_name)) {
-                        $pivotData[$request->classroom] = ['subject_name' => $subject_name];
+                        $teacher->classrooms()->attach($request->classroom, ['subject_name' => $subject_name]);
                     }
                 }
-                $teacher->classrooms()->attach($pivotData);
             }
 
             return redirect()->route('teachers.index')->with('success', 'Guru berhasil ditambahkan.');
@@ -133,13 +131,13 @@ class TeacherController extends Controller
             // Proses subjects dan classroom hanya jika classroom diisi
             if ($request->filled('classroom')) {
                 $subjects = array_map('trim', explode(',', $request->subjects));
-                $pivotData = [];
+                // Hapus semua relasi classroom sebelumnya
+                $teacher->classrooms()->sync([]);
                 foreach ($subjects as $subject_name) {
                     if (!empty($subject_name)) {
-                        $pivotData[$request->classroom] = ['subject_name' => $subject_name];
+                        $teacher->classrooms()->attach($request->classroom, ['subject_name' => $subject_name]);
                     }
                 }
-                $teacher->classrooms()->sync($pivotData);
             } else {
                 // Jika classroom tidak diisi, hapus semua relasi classroom
                 $teacher->classrooms()->sync([]);

@@ -41,10 +41,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
 });
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('/teacher/dashboard', function () {
-        return view('teacher.dashboard');
-    })->middleware('role:teacher')->name('teacher.dashboard');
-
     Route::get('/student/dashboard', function () {
         return view('student.dashboard');
     })->middleware('role:student')->name('student.dashboard');
@@ -56,10 +52,19 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/sessions/{classSession}/edit', [TeacherLmsController::class, 'editSession'])->name('edit_session');
         Route::put('/sessions/{classSession}', [TeacherLmsController::class, 'updateSession'])->name('update_session');
         Route::get('/sessions/{classSession}', [TeacherLmsController::class, 'showSession'])->name('show_session');
+        Route::delete('/sessions/{classSession}', [TeacherLmsController::class, 'destroySession'])->name('destroy_session');
         Route::get('/sessions/{classSession}/materials/create', [TeacherLmsController::class, 'createMaterial'])->name('create_material');
         Route::post('/sessions/{classSession}/materials', [TeacherLmsController::class, 'storeMaterial'])->name('store_material');
+        Route::get('/sessions/{classSession}/materials/{material}', [TeacherLmsController::class, 'showMaterial'])->name('show_material');
+        Route::get('/sessions/{classSession}/materials/{material}/edit', [TeacherLmsController::class, 'editMaterial'])->name('edit_material');
+        Route::put('/sessions/{classSession}/materials/{material}', [TeacherLmsController::class, 'updateMaterial'])->name('update_material');
+        Route::delete('/sessions/{classSession}/materials/{material}', [TeacherLmsController::class, 'destroyMaterial'])->name('destroy_material');
         Route::get('/sessions/{classSession}/assignments/create', [TeacherLmsController::class, 'createAssignment'])->name('create_assignment');
         Route::post('/sessions/{classSession}/assignments', [TeacherLmsController::class, 'storeAssignment'])->name('store_assignment');
+        Route::get('/sessions/{classSession}/assignments/{assignment}', [TeacherLmsController::class, 'showAssignment'])->name('show_assignment');
+        Route::get('/sessions/{classSession}/assignments/{assignment}/edit', [TeacherLmsController::class, 'editAssignment'])->name('edit_assignment');
+       Route::put('/sessions/{classSession}/assignments/{assignment}', [TeacherLmsController::class, 'updateAssignment'])->name('update_assignment');
+        Route::delete('/assignments/{assignment}', [TeacherLmsController::class, 'destroyAssignment'])->name('destroy_assignment');
         Route::get('/assignments/{assignment}/submissions', [TeacherLmsController::class, 'showSubmissions'])->name('show_submissions');
         Route::get('/change-password', [TeacherLmsController::class, 'showChangePasswordForm'])->name('change_password');
         Route::post('/change-password', [TeacherLmsController::class, 'changePassword'])->name('change_password.store');

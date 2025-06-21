@@ -1,50 +1,91 @@
-<!DOCTYPE html>
-     <html lang="id">
-     <head>
-         <title>Tambah Materi</title>
-         <style>
-             body { font-family: Arial, sans-serif; margin: 50px; }
-             .form-group { margin-bottom: 15px; }
-             label { display: block; margin-bottom: 5px; }
-             input, textarea { padding: 5px; width: 100%; max-width: 500px; }
-             button { padding: 10px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
-             .error { color: red; }
-             .logout-form { display: inline; }
-         </style>
-     </head>
-     <body>
-         <div style="margin-bottom: 20px;">
-             <a href="{{ route('teacher.lms.show_session', $classSession) }}">Kembali ke Sesi</a>
-             <form action="{{ route('logout') }}" method="POST" class="logout-form">
-                 @csrf
-                 <button type="submit" style="background: none; border: none; color: blue; cursor: pointer; padding: 0;">Logout</button>
-             </form>
-         </div>
-         <h2>Tambah Materi</h2>
-         @if ($errors->any())
-             <div class="error">
-                 <ul>
-                     @foreach ($errors->all() as $error)
-                         <li>{{ $error }}</li>
-                     @endforeach
-                 </ul>
-             </div>
-         @endif
-         <form method="POST" action="{{ route('teacher.lms.store_material', $classSession) }}" enctype="multipart/form-data">
-             @csrf
-             <div class="form-group">
-                 <label for="title">Judul Materi</label>
-                 <input type="text" name="title" id="title" value="{{ old('title') }}" required>
-             </div>
-             <div class="form-group">
-                 <label for="content">Konten</label>
-                 <textarea name="content" id="content">{{ old('content') }}</textarea>
-             </div>
-             <div class="form-group">
-                 <label for="file">File (PDF, DOC, PPT, JPG, PNG, GIF, MP4, AVI, MOV, MKV, maks 256 MB)</label>
-                 <input type="file" name="file" id="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.mp4,.avi,.mov,.mkv">
-             </div>
-             <button type="submit">Simpan</button>
-         </form>
-     </body>
-     </html>
+@extends('layouts.appguru')
+
+@section('title', 'Tambah Materi')
+
+@section('content')
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Tambah Materi Baru</h1>
+            <div class="flex items-center text-sm text-gray-600 mt-1">
+                <a href="{{ route('teacher.lms.show_session', $classSession) }}" class="text-blue-600 hover:text-blue-800 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Kembali ke Sesi Kelas
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Session Info -->
+    <div class="bg-blue-50 p-4 rounded-lg mb-6 border-l-4 border-blue-500">
+        <h2 class="font-semibold text-gray-800">{{ $classSession->title }}</h2>
+        <p class="text-sm text-gray-600">{{ $classSession->classroom->full_name }} - {{ $classSession->subject_name }}</p>
+    </div>
+
+    <!-- Error Messages -->
+    @if ($errors->any())
+        <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded">
+            <div class="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                <p class="font-medium">Ada masalah dengan input Anda:</p>
+            </div>
+            <ul class="mt-2 list-disc list-inside text-sm">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    <!-- Form Section -->
+    <div class="bg-white p-6 rounded-lg shadow-sm">
+        <form method="POST" action="{{ route('teacher.lms.store_material', $classSession) }}" enctype="multipart/form-data">
+            @csrf
+            
+            <!-- Title Field -->
+            <div class="mb-6">
+                <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Judul Materi*</label>
+                <input type="text" name="title" id="title" value="{{ old('title') }}" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                       required>
+                <p class="mt-1 text-xs text-gray-500">Judul yang jelas dan deskriptif</p>
+            </div>
+
+            <!-- Content Field -->
+            <div class="mb-6">
+                <label for="content" class="block text-sm font-medium text-gray-700 mb-1">Konten Materi</label>
+                <textarea name="content" id="content" rows="5"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">{{ old('content') }}</textarea>
+                <p class="mt-1 text-xs text-gray-500">Deskripsi atau penjelasan materi (opsional)</p>
+            </div>
+
+            <!-- File Upload Field -->
+            <div class="mb-6">
+                <label for="file" class="block text-sm font-medium text-gray-700 mb-1">File Materi</label>
+                <div class="mt-1 flex items-center">
+                    <input type="file" name="file" id="file" 
+                           accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.mp4,.avi,.mov,.mkv"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <p class="mt-1 text-xs text-gray-500">
+                    Format: PDF, DOC, PPT, JPG, PNG, GIF, MP4, AVI, MOV, MKV (maks 256 MB)
+                </p>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex justify-end">
+                <button type="submit" 
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                    Simpan Materi
+                </button>
+            </div>
+        </form>
+    </div>
+@endsection
