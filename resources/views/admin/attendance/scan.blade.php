@@ -24,8 +24,9 @@
     </style>
 </head>
 <body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-4">
-    <div class="mt-6 grid grid-cols-2 gap-3 mb-3">
-        <a href="{{ route('admin.dashboard') }}" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition">
+    <!-- Back Button in top-left corner -->
+    <div class="absolute top-4 left-4">
+        <a href="{{ route('attendance.index') }}" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
@@ -33,7 +34,8 @@
         </a>
     </div>
 
-    <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
+    <!-- Enlarged card by 20% -->
+    <div class="bg-white rounded-xl shadow-lg p-6 w-full" style="max-width: 576px"> <!-- 20% larger than max-w-md (480px) -->
         <h1 class="text-2xl font-semibold text-blue-600 mb-4 text-center">Scan QR Code Absensi</h1>
         
         <!-- Camera Selector -->
@@ -41,8 +43,8 @@
             <option value="">Pilih Kamera</option>
         </select>
         
-        <!-- QR Scanner Container -->
-        <div id="reader" class="w-full border-2 border-dashed border-gray-300 rounded-lg overflow-hidden bg-gray-50 min-h-[300px] flex items-center justify-center relative">
+        <!-- QR Scanner Container - enlarged by 20% -->
+        <div id="reader" class="w-full border-2 border-dashed border-gray-300 rounded-lg overflow-hidden bg-gray-50" style="min-height: 360px"> <!-- 20% larger than 300px -->
             <div id="loading-indicator" class="absolute inset-0 flex flex-col items-center justify-center bg-white bg-opacity-90 z-10">
                 <div class="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-3"></div>
                 <p class="text-gray-700 font-medium">Memulai kamera...</p>
@@ -103,7 +105,7 @@
 
                 const config = {
                     fps: 10,
-                    qrbox: { width: 250, height: 250 },
+                    qrbox: { width: 300, height: 300 }, // Enlarged by 20%
                     formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
                     experimentalFeatures: {
                         useBarCodeDetectorIfSupported: true
@@ -165,7 +167,7 @@
                     html5QrCode.stop().then(() => {
                         const config = {
                             fps: 10,
-                            qrbox: { width: 250, height: 250 },
+                            qrbox: { width: 300, height: 300 }, // Enlarged by 20%
                             formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE]
                         };
                         startCamera(currentCameraId, config);

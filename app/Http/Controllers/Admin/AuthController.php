@@ -29,7 +29,7 @@ class AuthController extends Controller
             if ($user->role === 'admin') {
                 return redirect()->route('admin.dashboard');
             } elseif ($user->role === 'teacher') {
-                return redirect()->route('teacher.dashboard');
+                return redirect()->route('teacher.lms.index');
             } elseif ($user->role === 'student') {
                 return redirect()->route('student.dashboard');
             }

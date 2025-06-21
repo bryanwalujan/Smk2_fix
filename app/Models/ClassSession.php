@@ -6,11 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class ClassSession extends Model
 {
-    protected $fillable = ['teacher_id', 'classroom_id', 'subject_name', 'title', 'start_time', 'end_time'];
+    protected $fillable = ['teacher_id', 'classroom_id', 'subject_name', 'day_of_week', 'start_time', 'end_time'];
 
     protected $casts = [
-        'start_time' => 'datetime',
-        'end_time' => 'datetime',
+        'start_time' => 'string',
+        'end_time' => 'string',
+        'day_of_week' => 'string', 
     ];
 
     public function teacher()
