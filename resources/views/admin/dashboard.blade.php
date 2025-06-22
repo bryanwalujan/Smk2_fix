@@ -7,10 +7,10 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-50">
     @include('layouts.navbar-admin')
-    
-    <div class="container mx-auto px-4 py-8">
+
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
         <div class="flex justify-between items-center mb-8">
             <h1 class="text-3xl font-bold text-gray-800">Dashboard Admin</h1>
             <div class="text-sm text-gray-500">
@@ -19,8 +19,59 @@
             </div>
         </div>
 
+        <!-- Success/Error Messages -->
+        @if (session('success'))
+            <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-green-700">{{ session('success') }}</p>
+                    </div>
+                </div>
+            </div>
+        @endif
+        @if (session('error'))
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-red-700">{{ session('error') }}</p>
+                    </div>
+                </div>
+            </div>
+        @endif
+        @if (session('errors'))
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-red-800">Terdapat kesalahan pada data yang diimpor:</h3>
+                        <div class="mt-2 text-sm text-red-700">
+                            <ul class="list-disc pl-5 space-y-1">
+                                @foreach (session('errors') as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center">
                     <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
@@ -68,6 +119,21 @@
 
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-red-100 text-red-600 mr-4">
+                        <i class="fas fa-book text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Total Mata Pelajaran</p>
+                        <h3 class="text-2xl font-bold">{{ App\Models\Subject::count() }}</h3>
+                    </div>
+                </div>
+                <a href="{{ route('subjects.index') }}" class="mt-4 inline-flex items-center text-red-600 hover:text-red-800">
+                    Lihat detail <i class="fas fa-arrow-right ml-2"></i>
+                </a>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
                     <div class="p-3 rounded-full bg-yellow-100 text-yellow-600 mr-4">
                         <i class="fas fa-clipboard-check text-xl"></i>
                     </div>
@@ -83,7 +149,104 @@
                 </a>
             </div>
         </div>
-        
+
+        <!-- Import/Export Section -->
+        <div class="bg-white rounded-lg shadow p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">Impor/Ekspor Data</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Impor Siswa -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-700 mb-2">Impor Data Siswa</h3>
+                    <p class="text-sm text-gray-600 mb-4">Unduh template, isi data siswa, lalu unggah file di bawah ini.</p>
+                    <a href="{{ route('admin.export.students.template') }}"
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 mb-4">
+                        <i class="fas fa-download mr-2"></i> Unduh Template Siswa
+                    </a>
+                    <form action="{{ route('admin.import.students') }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <div class="flex items-center space-x-4">
+                            <input type="file" name="file" accept=".xlsx" class="block w-full text-sm text-gray-500
+                                  file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0
+                                  file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700
+                                  hover:file:bg-indigo-100">
+                            <button type="submit"
+                                    class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                <i class="fas fa-upload mr-2"></i> Unggah File
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Impor Guru -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-700 mb-2">Impor Data Guru</h3>
+                    <p class="text-sm text-gray-600 mb-4">Unduh template, isi data guru, lalu unggah file di bawah ini.</p>
+                    <a href="{{ route('admin.export.teachers.template') }}"
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 mb-4">
+                        <i class="fas fa-download mr-2"></i> Unduh Template Guru
+                    </a>
+                    <form action="{{ route('admin.import.teachers') }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <div class="flex items-center space-x-4">
+                            <input type="file" name="file" accept=".xlsx" class="block w-full text-sm text-gray-500
+                                  file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0
+                                  file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700
+                                  hover:file:bg-indigo-100">
+                            <button type="submit"
+                                    class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                <i class="fas fa-upload mr-2"></i> Unggah File
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Impor Kelas -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-700 mb-2">Impor Data Kelas</h3>
+                    <p class="text-sm text-gray-600 mb-4">Unduh template, isi data kelas, lalu unggah file di bawah ini.</p>
+                    <a href="{{ route('admin.export.classrooms.template') }}"
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 mb-4">
+                        <i class="fas fa-download mr-2"></i> Unduh Template Kelas
+                    </a>
+                    <form action="{{ route('admin.import.classrooms') }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <div class="flex items-center space-x-4">
+                            <input type="file" name="file" accept=".xlsx" class="block w-full text-sm text-gray-500
+                                  file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0
+                                  file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700
+                                  hover:file:bg-indigo-100">
+                            <button type="submit"
+                                    class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                <i class="fas fa-upload mr-2"></i> Unggah File
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Impor Mata Pelajaran -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-700 mb-2">Impor Data Mata Pelajaran</h3>
+                    <p class="text-sm text-gray-600 mb-4">Unduh template, isi data mata pelajaran, lalu unggah file di bawah ini.</p>
+                    <a href="{{ route('admin.export.subjects.template') }}"
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 mb-4">
+                        <i class="fas fa-download mr-2"></i> Unduh Template Mata Pelajaran
+                    </a>
+                    <form action="{{ route('admin.import.subjects') }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <div class="flex items-center space-x-4">
+                            <input type="file" name="file" accept=".xlsx" class="block w-full text-sm text-gray-500
+                                  file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0
+                                  file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700
+                                  hover:file:bg-indigo-100">
+                            <button type="submit"
+                                    class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                <i class="fas fa-upload mr-2"></i> Unggah File
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
 
         <!-- Recent Activities -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -139,6 +302,10 @@
                     <a href="{{ route('classrooms.create') }}" class="flex items-center p-3 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition">
                         <i class="fas fa-door-open mr-3"></i>
                         <span>Buat Kelas Baru</span>
+                    </a>
+                    <a href="{{ route('subjects.create') }}" class="flex items-center p-3 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition">
+                        <i class="fas fa-book mr-3"></i>
+                        <span>Tambah Mata Pelajaran</span>
                     </a>
                     <a href="{{ route('attendance.scan') }}" class="flex items-center p-3 rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition">
                         <i class="fas fa-qrcode mr-3"></i>

@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <title>Teachers List</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Guru</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="{{ asset('js/html2canvas.min.js') }}"></script>
@@ -119,6 +121,11 @@
                 <p>{{ session('success') }}</p>
             </div>
         @endif
+        @if (session('error'))
+            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded mb-6">
+                <p>{{ session('error') }}</p>
+            </div>
+        @endif
 
         <div class="bg-white shadow-md rounded-lg overflow-hidden">
             <div class="overflow-x-auto">
@@ -128,7 +135,7 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NIP</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mata Pelajaran</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kelas</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wali Kelas</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">QR Code</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                         </tr>
@@ -139,28 +146,25 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $teacher->nip }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $teacher->name }}</td>
                                 <td class="px-6 py-4 text-sm text-gray-500">
-                                    {{ $teacher->classrooms()->pluck('teacher_classroom_subject.subject_name')->unique()->implode(', ') }}
+                                    {{ $teacher->subjects->pluck('name')->implode(', ') ?: '-' }}
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-500">
-                                    {{ $teacher->classrooms->map(function($classroom) { 
-                                        return $classroom->level . ' ' . $classroom->major . ' ' . $classroom->class_code; 
-                                    })->implode(', ') }}
+                                    {{ $teacher->classroom?->full_name ?? '-' }}
                                 </td>
-                               <td class="px-6 py-4 whitespace-nowrap">
-    @php
-        $qrPath = 'qrcodes/teacher_'.$teacher->barcode.'.svg';
-        $qrExists = file_exists(public_path($qrPath));
-    @endphp
-    
-    @if ($qrExists)
-        <div class="qr-container" id="qr-container-{{ $teacher->id }}">
-            <img src="{{ asset($qrPath) }}" alt="QR Code" class="qr-preview rounded border border-gray-200">
-            <div class="qr-download-btn" onclick="downloadQRCode({{ $teacher->id }}, '{{ $teacher->name }}')">Download HQ</div>
-        </div>
-    @else
-        <span class="text-sm text-gray-400">QR Code tidak ditemukan</span>
-    @endif
-</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    @php
+                                        $qrPath = 'qrcodes/teacher_' . $teacher->barcode . '.svg';
+                                        $qrExists = file_exists(public_path($qrPath));
+                                    @endphp
+                                    @if ($qrExists)
+                                        <div class="qr-container" id="qr-container-{{ $teacher->id }}">
+                                            <img src="{{ asset($qrPath) }}" alt="QR Code" class="qr-preview rounded border border-gray-200">
+                                            <div class="qr-download-btn" onclick="downloadQRCode({{ $teacher->id }}, '{{ $teacher->name }}')">Download HQ</div>
+                                        </div>
+                                    @else
+                                        <span class="text-sm text-gray-400">QR Code tidak ditemukan</span>
+                                    @endif
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <div class="flex space-x-2">
                                         <a href="{{ route('teachers.edit', $teacher->id) }}" class="text-blue-600 hover:text-blue-900">Edit</a>
