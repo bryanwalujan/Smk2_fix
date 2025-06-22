@@ -6,10 +6,10 @@
     <title>Dashboard Admin</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </head>
 <body class="bg-gray-50">
     @include('layouts.navbar-admin')
-
     <div class="container mx-auto px-4 py-8 max-w-7xl">
         <div class="flex justify-between items-center mb-8">
             <h1 class="text-3xl font-bold text-gray-800">Dashboard Admin</h1>
@@ -86,7 +86,6 @@
                     Lihat detail <i class="fas fa-arrow-right ml-2"></i>
                 </a>
             </div>
-
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center">
                     <div class="p-3 rounded-full bg-green-100 text-green-600 mr-4">
@@ -101,7 +100,6 @@
                     Lihat detail <i class="fas fa-arrow-right ml-2"></i>
                 </a>
             </div>
-
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center">
                     <div class="p-3 rounded-full bg-purple-100 text-purple-600 mr-4">
@@ -116,7 +114,6 @@
                     Lihat detail <i class="fas fa-arrow-right ml-2"></i>
                 </a>
             </div>
-
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center">
                     <div class="p-3 rounded-full bg-red-100 text-red-600 mr-4">
@@ -131,7 +128,6 @@
                     Lihat detail <i class="fas fa-arrow-right ml-2"></i>
                 </a>
             </div>
-
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center">
                     <div class="p-3 rounded-full bg-yellow-100 text-yellow-600 mr-4">
@@ -139,9 +135,7 @@
                     </div>
                     <div>
                         <p class="text-gray-500">Presensi Siswa Hari Ini</p>
-                        <h3 class="text-2xl font-bold">
-                            {{ App\Models\StudentAttendance::whereDate('tanggal', now()->toDateString())->count() }}
-                        </h3>
+                        <h3 class="text-2xl font-bold">{{ App\Models\StudentAttendance::whereDate('tanggal', now()->toDateString())->count() }}</h3>
                     </div>
                 </div>
                 <a href="{{ route('attendance.scan') }}" class="mt-4 inline-flex items-center text-yellow-600 hover:text-yellow-800">
@@ -153,93 +147,67 @@
         <!-- Import/Export Section -->
         <div class="bg-white rounded-lg shadow p-6 mb-8">
             <h2 class="text-xl font-semibold mb-4 text-gray-800">Impor/Ekspor Data</h2>
+            <p class="text-sm text-gray-600 mb-6">Unduh template Excel, isi data sesuai petunjuk, lalu unggah file untuk menambahkan data baru.</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Impor Siswa -->
                 <div>
                     <h3 class="text-lg font-medium text-gray-700 mb-2">Impor Data Siswa</h3>
                     <p class="text-sm text-gray-600 mb-4">Unduh template, isi data siswa, lalu unggah file di bawah ini.</p>
-                    <a href="{{ route('admin.export.students.template') }}"
-                       class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 mb-4">
+                    <a href="{{ route('admin.export.students.template') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 mb-4">
                         <i class="fas fa-download mr-2"></i> Unduh Template Siswa
                     </a>
                     <form action="{{ route('admin.import.students') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <div class="flex items-center space-x-4">
-                            <input type="file" name="file" accept=".xlsx" class="block w-full text-sm text-gray-500
-                                  file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0
-                                  file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700
-                                  hover:file:bg-indigo-100">
-                            <button type="submit"
-                                    class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            <input type="file" name="file" accept=".xlsx" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                            <button type="submit" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                                 <i class="fas fa-upload mr-2"></i> Unggah File
                             </button>
                         </div>
                     </form>
                 </div>
-
-                <!-- Impor Guru -->
                 <div>
                     <h3 class="text-lg font-medium text-gray-700 mb-2">Impor Data Guru</h3>
                     <p class="text-sm text-gray-600 mb-4">Unduh template, isi data guru, lalu unggah file di bawah ini.</p>
-                    <a href="{{ route('admin.export.teachers.template') }}"
-                       class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 mb-4">
+                    <a href="{{ route('admin.export.teachers.template') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 mb-4">
                         <i class="fas fa-download mr-2"></i> Unduh Template Guru
                     </a>
                     <form action="{{ route('admin.import.teachers') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <div class="flex items-center space-x-4">
-                            <input type="file" name="file" accept=".xlsx" class="block w-full text-sm text-gray-500
-                                  file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0
-                                  file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700
-                                  hover:file:bg-indigo-100">
-                            <button type="submit"
-                                    class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            <input type="file" name="file" accept=".xlsx" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                            <button type="submit" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                                 <i class="fas fa-upload mr-2"></i> Unggah File
                             </button>
                         </div>
                     </form>
                 </div>
-
-                <!-- Impor Kelas -->
                 <div>
                     <h3 class="text-lg font-medium text-gray-700 mb-2">Impor Data Kelas</h3>
                     <p class="text-sm text-gray-600 mb-4">Unduh template, isi data kelas, lalu unggah file di bawah ini.</p>
-                    <a href="{{ route('admin.export.classrooms.template') }}"
-                       class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 mb-4">
+                    <a href="{{ route('admin.export.classrooms.template') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 mb-4">
                         <i class="fas fa-download mr-2"></i> Unduh Template Kelas
                     </a>
                     <form action="{{ route('admin.import.classrooms') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <div class="flex items-center space-x-4">
-                            <input type="file" name="file" accept=".xlsx" class="block w-full text-sm text-gray-500
-                                  file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0
-                                  file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700
-                                  hover:file:bg-indigo-100">
-                            <button type="submit"
-                                    class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            <input type="file" name="file" accept=".xlsx" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                            <button type="submit" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                                 <i class="fas fa-upload mr-2"></i> Unggah File
                             </button>
                         </div>
                     </form>
                 </div>
-
-                <!-- Impor Mata Pelajaran -->
                 <div>
                     <h3 class="text-lg font-medium text-gray-700 mb-2">Impor Data Mata Pelajaran</h3>
                     <p class="text-sm text-gray-600 mb-4">Unduh template, isi data mata pelajaran, lalu unggah file di bawah ini.</p>
-                    <a href="{{ route('admin.export.subjects.template') }}"
-                       class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 mb-4">
+                    <a href="{{ route('admin.export.subjects.template') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 mb-4">
                         <i class="fas fa-download mr-2"></i> Unduh Template Mata Pelajaran
                     </a>
                     <form action="{{ route('admin.import.subjects') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <div class="flex items-center space-x-4">
-                            <input type="file" name="file" accept=".xlsx" class="block w-full text-sm text-gray-500
-                                  file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0
-                                  file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700
-                                  hover:file:bg-indigo-100">
-                            <button type="submit"
-                                    class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            <input type="file" name="file" accept=".xlsx" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                            <button type="submit" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                                 <i class="fas fa-upload mr-2"></i> Unggah File
                             </button>
                         </div>
@@ -248,18 +216,76 @@
             </div>
         </div>
 
+        <!-- Role and Permission Management -->
+        @can('manage_roles')
+            <div class="bg-white rounded-lg shadow p-6 mb-8" x-data="permissionManager()">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Manajemen Izin</h2>
+                <p class="text-sm text-gray-600 mb-6">Kelola izin untuk role teacher dan student. Klik tombol izin untuk menambah atau menghapus izin.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    @foreach (['teacher', 'student'] as $roleName)
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-700 mb-4">{{ ucfirst($roleName) }} Permissions</h3>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach ($permissions as $permission)
+                                    <button type="button"
+                                            x-bind:class="isPermissionActive('{{ $roleName }}', '{{ $permission->name }}') ? 'bg-green-500 text-white' : 'bg-white text-gray-700 border border-gray-300'"
+                                            class="px-3 py-1 rounded-md text-sm font-medium hover:bg-green-400 transition"
+                                            x-on:click="togglePermission('{{ $roleName }}', '{{ $permission->name }}')">
+                                        {{ ucfirst(str_replace('_', ' ', $permission->name)) }}
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+                <script>
+                    function permissionManager() {
+                        return {
+                            permissions: @json($roles->mapWithKeys(function ($role) {
+                                return [$role->name => $role->permissions->pluck('name')->toArray()];
+                            })),
+                            isPermissionActive(role, permission) {
+                                return this.permissions[role].includes(permission);
+                            },
+                            async togglePermission(role, permission) {
+                                try {
+                                    const response = await fetch('{{ route('admin.permissions.toggle') }}', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                        },
+                                        body: JSON.stringify({ role, permission }),
+                                    });
+                                    const data = await response.json();
+                                    if (data.success) {
+                                        if (this.permissions[role].includes(permission)) {
+                                            this.permissions[role] = this.permissions[role].filter(p => p !== permission);
+                                        } else {
+                                            this.permissions[role].push(permission);
+                                        }
+                                        alert(data.message);
+                                    } else {
+                                        alert(data.message);
+                                    }
+                                } catch (error) {
+                                    alert('Gagal memperbarui izin: ' + error.message);
+                                }
+                            }
+                        }
+                    }
+                </script>
+            </div>
+        @endcan
+
         <!-- Recent Activities -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="bg-white rounded-lg shadow p-6 lg:col-span-2">
                 <h2 class="text-xl font-semibold mb-4 text-gray-800">Aktivitas Terkini</h2>
                 <div class="space-y-4">
                     @php
-                        $recentActivities = App\Models\StudentAttendance::with('student')
-                            ->orderBy('created_at', 'desc')
-                            ->limit(5)
-                            ->get();
+                        $recentActivities = App\Models\StudentAttendance::with('student')->orderBy('created_at', 'desc')->limit(5)->get();
                     @endphp
-                    
                     @forelse($recentActivities as $activity)
                         <div class="flex items-start pb-4 border-b border-gray-100 last:border-0">
                             <div class="p-2 rounded-full bg-blue-100 text-blue-600 mr-4">
@@ -268,9 +294,7 @@
                             <div>
                                 <p class="font-medium text-gray-800">
                                     {{ $activity->student->name ?? 'Siswa Tidak Diketahui' }}
-                                    <span class="text-sm font-normal text-gray-500">
-                                        ({{ $activity->waktu_masuk }})
-                                    </span>
+                                    <span class="text-sm font-normal text-gray-500">({{ $activity->waktu_masuk }})</span>
                                 </p>
                                 <p class="text-sm text-gray-600">
                                     @if($activity->waktu_pulang)
@@ -286,30 +310,24 @@
                     @endforelse
                 </div>
             </div>
-
             <!-- Quick Actions -->
             <div class="bg-white rounded-lg shadow p-6">
                 <h2 class="text-xl font-semibold mb-4 text-gray-800">Aksi Cepat</h2>
                 <div class="space-y-3">
                     <a href="{{ route('students.create') }}" class="flex items-center p-3 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition">
-                        <i class="fas fa-user-plus mr-3"></i>
-                        <span>Tambah Siswa Baru</span>
+                        <i class="fas fa-user-plus mr-3"></i> Tambah Siswa Baru
                     </a>
                     <a href="{{ route('teachers.create') }}" class="flex items-center p-3 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition">
-                        <i class="fas fa-chalkboard-teacher mr-3"></i>
-                        <span>Tambah Guru Baru</span>
+                        <i class="fas fa-chalkboard-teacher mr-3"></i> Tambah Guru Baru
                     </a>
                     <a href="{{ route('classrooms.create') }}" class="flex items-center p-3 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition">
-                        <i class="fas fa-door-open mr-3"></i>
-                        <span>Buat Kelas Baru</span>
+                        <i class="fas fa-door-open mr-3"></i> Buat Kelas Baru
                     </a>
                     <a href="{{ route('subjects.create') }}" class="flex items-center p-3 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition">
-                        <i class="fas fa-book mr-3"></i>
-                        <span>Tambah Mata Pelajaran</span>
+                        <i class="fas fa-book mr-3"></i> Tambah Mata Pelajaran
                     </a>
                     <a href="{{ route('attendance.scan') }}" class="flex items-center p-3 rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition">
-                        <i class="fas fa-qrcode mr-3"></i>
-                        <span>Scan Presensi</span>
+                        <i class="fas fa-qrcode mr-3"></i> Scan Presensi
                     </a>
                 </div>
             </div>

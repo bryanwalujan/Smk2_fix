@@ -7,24 +7,120 @@ use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\Classroom;
 use App\Models\Subject;
+use App\Models\StudentAttendance;
 use App\Models\User;
-use Illuminate\Http\Request;
+use App\Exports\StudentsExport;
+use App\Exports\TeachersExport;
+use App\Exports\ClassroomsExport;
+use App\Exports\SubjectsExport;
+use App\Exports\AttendanceExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 
 class AdminController extends Controller
 {
     public function dashboard()
     {
-        return view('admin.dashboard');
+        $roles = Role::whereIn('name', ['teacher', 'student'])->get();
+        $permissions = Permission::all();
+        return view('admin.dashboard', compact('roles', 'permissions'));
     }
 
+       public function togglePermission(Request $request)
+    {
+        try {
+            // Cek apakah user memiliki izin manage_roles
+            if (!auth()->user()->can('manage_roles')) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Anda tidak memiliki izin untuk mengelola role.'
+                ], 403);
+            }
+
+            // Validasi input
+            $validated = $request->validate([
+                'role' => 'required|string|in:teacher,student',
+                'permission' => 'required|string|exists:permissions,name',
+            ]);
+
+            // Cari role berdasarkan name
+            $role = Role::where('name', $validated['role'])->first();
+            if (!$role) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Role '{$validated['role']}' tidak ditemukan."
+                ], 404);
+            }
+
+            // Cari permission berdasarkan name
+            $permission = Permission::where('name', $validated['permission'])->first();
+            if (!$permission) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Permission '{$validated['permission']}' tidak ditemukan."
+                ], 404);
+            }
+
+            // Toggle permission
+            if ($role->hasPermissionTo($permission)) {
+                $role->revokePermissionTo($permission);
+                $message = "Izin '{$permission->name}' berhasil dihapus dari role {$role->name}.";
+                $action = 'revoked';
+            } else {
+                $role->givePermissionTo($permission);
+                $message = "Izin '{$permission->name}' berhasil ditambahkan ke role {$role->name}.";
+                $action = 'granted';
+            }
+
+            // Log aktivitas
+            Log::info('Permission toggled successfully', [
+                'user_id' => auth()->id(),
+                'role' => $role->name,
+                'permission' => $permission->name,
+                'action' => $action
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'action' => $action,
+                'role' => $role->name,
+                'permission' => $permission->name
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data yang dikirim tidak valid.',
+                'errors' => $e->errors()
+            ], 422);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to toggle permission', [
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'request' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan sistem. Silakan coba lagi.'
+            ], 500);
+        }
+    }
+
+    // ... (semua method lainnya tetap sama seperti sebelumnya)
     // Template Excel untuk Siswa
     public function exportStudentsTemplate()
     {
@@ -58,6 +154,8 @@ class AdminController extends Controller
     // Import Siswa
     public function importStudents(Request $request)
     {
+        $this->authorize('manage_users');
+
         $request->validate([
             'file' => 'required|mimes:xlsx',
         ], [
@@ -92,7 +190,6 @@ class AdminController extends Controller
                     continue;
                 }
 
-                // Cek apakah kelas sudah ada
                 $classroom = Classroom::where('level', $level)
                                      ->where('major', $major)
                                      ->where('class_code', $classCode)
@@ -127,6 +224,8 @@ class AdminController extends Controller
                     'role' => 'student',
                 ]);
 
+                $user->assignRole('student');
+
                 $barcodeId = rand(100000, 999999);
                 Student::create([
                     'nis' => $nis,
@@ -136,7 +235,6 @@ class AdminController extends Controller
                     'classroom_id' => $classroom->id,
                 ]);
 
-                // Generate QR Code
                 $qrCodeDir = public_path('qrcodes');
                 if (!File::exists($qrCodeDir)) {
                     File::makeDirectory($qrCodeDir, 0755, true);
@@ -203,6 +301,8 @@ class AdminController extends Controller
     // Import Guru
     public function importTeachers(Request $request)
     {
+        $this->authorize('manage_users');
+
         $request->validate([
             'file' => 'required|mimes:xlsx',
         ], [
@@ -233,7 +333,6 @@ class AdminController extends Controller
                 $major = trim($row[5] ?? '');
                 $classCode = trim($row[6] ?? '');
 
-                // Cek kelas jika diisi
                 $classroom = null;
                 if (!empty($level) || !empty($major) || !empty($classCode)) {
                     if (empty($level) || empty($major) || empty($classCode)) {
@@ -262,14 +361,13 @@ class AdminController extends Controller
                     continue;
                 }
 
-                // Cari subject_ids berdasarkan nama mata pelajaran
                 $subjectNames = array_filter(array_map('trim', explode(',', $subjectsInput)));
                 $subjectIds = [];
                 foreach ($subjectNames as $subjectName) {
                     $subject = Subject::where('name', $subjectName)->first();
                     if (!$subject) {
                         $errors[] = "Baris ke-" . ($index + 2) . ": Mata pelajaran '$subjectName' tidak ditemukan. Harap tambahkan mata pelajaran di menu Mata Pelajaran.";
-                        continue 2; // Lewati baris ini
+                        continue 2;
                     }
                     $subjectIds[] = $subject->id;
                 }
@@ -298,6 +396,8 @@ class AdminController extends Controller
                     'role' => 'teacher',
                 ]);
 
+                $user->assignRole('teacher');
+
                 $barcodeId = rand(100000, 999999);
                 $teacher = Teacher::create([
                     'nip' => $nip,
@@ -307,10 +407,8 @@ class AdminController extends Controller
                     'classroom_id' => $classroom ? $classroom->id : null,
                 ]);
 
-                // Simpan relasi mata pelajaran
                 $teacher->subjects()->sync($subjectIds);
 
-                // Generate QR Code
                 $qrCodeDir = public_path('qrcodes');
                 if (!File::exists($qrCodeDir)) {
                     File::makeDirectory($qrCodeDir, 0755, true);
@@ -377,6 +475,8 @@ class AdminController extends Controller
     // Import Kelas
     public function importClassrooms(Request $request)
     {
+        $this->authorize('manage_users');
+
         $request->validate([
             'file' => 'required|mimes:xlsx',
         ], [
@@ -470,6 +570,8 @@ class AdminController extends Controller
     // Import Mata Pelajaran
     public function importSubjects(Request $request)
     {
+        $this->authorize('manage_users');
+
         $request->validate([
             'file' => 'required|mimes:xlsx',
         ], [
@@ -500,7 +602,7 @@ class AdminController extends Controller
                 }
 
                 if (Subject::where('name', $name)->exists()) {
-                    $errors[] = "Baris ke-" . ($index + 2) . ": Mata pelajaran '$name' sudah terdaftar. Gunakan nama lain.";
+                    $errors[] = "Baris ke-" . ($index + 2) . ": Mata pelajaran '$name' sudah ada.";
                     continue;
                 }
 
@@ -521,5 +623,85 @@ class AdminController extends Controller
             ]);
             return redirect()->back()->with('error', 'Gagal mengimpor data mata pelajaran. Silakan coba lagi atau hubungi admin.');
         }
+    }
+
+    // Ekspor Siswa (Excel)
+    public function exportStudentsExcel()
+    {
+        $this->authorize('export_excel');
+        return Excel::download(new StudentsExport, 'siswa_' . now()->format('Y-m-d') . '.xlsx');
+    }
+
+    // Ekspor Siswa (PDF)
+    public function exportStudentsPdf()
+    {
+        $this->authorize('export_pdf');
+        $students = Student::with('classroom')->get();
+        $pdf = Pdf::loadView('admin.exports.students_pdf', compact('students'));
+        return $pdf->download('siswa_' . now()->format('Y-m-d') . '.pdf');
+    }
+
+    // Ekspor Guru (Excel)
+    public function exportTeachersExcel()
+    {
+        $this->authorize('export_excel');
+        return Excel::download(new TeachersExport, 'guru_' . now()->format('Y-m-d') . '.xlsx');
+    }
+
+    // Ekspor Guru (PDF)
+    public function exportTeachersPdf()
+    {
+        $this->authorize('export_pdf');
+        $teachers = Teacher::with('subjects')->get();
+        $pdf = Pdf::loadView('admin.exports.teachers_pdf', compact('teachers'));
+        return $pdf->download('guru_' . now()->format('Y-m-d') . '.pdf');
+    }
+
+    // Ekspor Kelas (Excel)
+    public function exportClassroomsExcel()
+    {
+        $this->authorize('export_excel');
+        return Excel::download(new ClassroomsExport, 'kelas_' . now()->format('Y-m-d') . '.xlsx');
+    }
+
+    // Ekspor Kelas (PDF)
+    public function exportClassroomsPdf()
+    {
+        $this->authorize('export_pdf');
+        $classrooms = Classroom::all();
+        $pdf = Pdf::loadView('admin.exports.classrooms_pdf', compact('classrooms'));
+        return $pdf->download('kelas_' . now()->format('Y-m-d') . '.pdf');
+    }
+
+    // Ekspor Mata Pelajaran (Excel)
+    public function exportSubjectsExcel()
+    {
+        $this->authorize('export_excel');
+        return Excel::download(new SubjectsExport, 'mata_pelajaran_' . now()->format('Y-m-d') . '.xlsx');
+    }
+
+    // Ekspor Mata Pelajaran (PDF)
+    public function exportSubjectsPdf()
+    {
+        $this->authorize('export_pdf');
+        $subjects = Subject::all();
+        $pdf = Pdf::loadView('admin.exports.subjects_pdf', compact('subjects'));
+        return $pdf->download('mata_pelajaran_' . now()->format('Y-m-d') . '.pdf');
+    }
+
+    // Ekspor Kehadiran (Excel)
+    public function exportAttendanceExcel()
+    {
+        $this->authorize('export_excel');
+        return Excel::download(new AttendanceExport, 'kehadiran_' . now()->format('Y-m-d') . '.xlsx');
+    }
+
+    // Ekspor Kehadiran (PDF)
+    public function exportAttendancePdf()
+    {
+        $this->authorize('export_pdf');
+        $attendances = StudentAttendance::with('student')->get();
+        $pdf = Pdf::loadView('admin.exports.attendance_pdf', compact('attendances'));
+        return $pdf->download('kehadiran_' . now()->format('Y-m-d') . '.pdf');
     }
 }

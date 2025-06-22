@@ -8,7 +8,6 @@ use App\Http\Controllers\Admin\ClassroomController;
 use App\Http\Controllers\Admin\ScheduleController;
 use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\AdminController;
-use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Teacher\TeacherLmsController;
 use App\Http\Controllers\Student\StudentLmsController;
 
@@ -21,7 +20,7 @@ Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
+Route::middleware(['auth', 'spatie.role:admin'])->prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
 
     Route::resource('students', StudentController::class);
@@ -40,27 +39,42 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/attendance/scan', [AttendanceController::class, 'showScanPage'])->name('attendance.scan');
     Route::post('/attendance/scan', [AttendanceController::class, 'scanBarcode'])->name('attendance.scan.post');
 
-    // Import/Export Routes
+    // Import Routes
     Route::get('/export/students/template', [AdminController::class, 'exportStudentsTemplate'])->name('admin.export.students.template');
-    Route::post('/import/students', [AdminController::class, 'importStudents'])->name('admin.import.students');
+    Route::post('/import/students', [AdminController::class, 'importStudents'])->middleware('spatie.permission:manage_users')->name('admin.import.students');
     Route::get('/export/teachers/template', [AdminController::class, 'exportTeachersTemplate'])->name('admin.export.teachers.template');
-    Route::post('/import/teachers', [AdminController::class, 'importTeachers'])->name('admin.import.teachers');
+    Route::post('/import/teachers', [AdminController::class, 'importTeachers'])->middleware('spatie.permission:manage_users')->name('admin.import.teachers');
     Route::get('/export/classrooms/template', [AdminController::class, 'exportClassroomsTemplate'])->name('admin.export.classrooms.template');
-    Route::post('/import/classrooms', [AdminController::class, 'importClassrooms'])->name('admin.import.classrooms');
+    Route::post('/import/classrooms', [AdminController::class, 'importClassrooms'])->middleware('spatie.permission:manage_users')->name('admin.import.classrooms');
     Route::get('/export/subjects/template', [AdminController::class, 'exportSubjectsTemplate'])->name('admin.export.subjects.template');
-    Route::post('/import/subjects', [AdminController::class, 'importSubjects'])->name('admin.import.subjects');
+    Route::post('/import/subjects', [AdminController::class, 'importSubjects'])->middleware('spatie.permission:manage_users')->name('admin.import.subjects');
+
+    // Export Routes
+    Route::get('/export/students/excel', [AdminController::class, 'exportStudentsExcel'])->middleware('spatie.permission:export_excel')->name('admin.export.students.excel');
+    Route::get('/export/students/pdf', [AdminController::class, 'exportStudentsPdf'])->middleware('spatie.permission:export_pdf')->name('admin.export.students.pdf');
+    Route::get('/export/teachers/excel', [AdminController::class, 'exportTeachersExcel'])->middleware('spatie.permission:export_excel')->name('admin.export.teachers.excel');
+    Route::get('/export/teachers/pdf', [AdminController::class, 'exportTeachersPdf'])->middleware('spatie.permission:export_pdf')->name('admin.export.teachers.pdf');
+    Route::get('/export/classrooms/excel', [AdminController::class, 'exportClassroomsExcel'])->middleware('spatie.permission:export_excel')->name('admin.export.classrooms.excel');
+    Route::get('/export/classrooms/pdf', [AdminController::class, 'exportClassroomsPdf'])->middleware('spatie.permission:export_pdf')->name('admin.export.classrooms.pdf');
+    Route::get('/export/subjects/excel', [AdminController::class, 'exportSubjectsExcel'])->middleware('spatie.permission:export_excel')->name('admin.export.subjects.excel');
+    Route::get('/export/subjects/pdf', [AdminController::class, 'exportSubjectsPdf'])->middleware('spatie.permission:export_pdf')->name('admin.export.subjects.pdf');
+    Route::get('/export/attendance/excel', [AdminController::class, 'exportAttendanceExcel'])->middleware('spatie.permission:export_excel')->name('admin.export.attendance.excel');
+    Route::get('/export/attendance/pdf', [AdminController::class, 'exportAttendancePdf'])->middleware('spatie.permission:export_pdf')->name('admin.export.attendance.pdf');
+
+    // Toggle Permission
+    Route::post('/permissions/toggle', [AdminController::class, 'togglePermission'])->middleware('spatie.permission:manage_roles')->name('admin.permissions.toggle');
 });
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/teacher/dashboard', function () {
         return view('teacher.dashboard');
-    })->middleware('role:teacher')->name('teacher.dashboard');
+    })->middleware('spatie.role:teacher')->name('teacher.dashboard');
 
     Route::get('/student/dashboard', function () {
         return view('student.dashboard');
-    })->middleware('role:student')->name('student.dashboard');
+    })->middleware('spatie.role:student')->name('student.dashboard');
 
-    Route::prefix('teacher/lms')->name('teacher.lms.')->middleware('role:teacher')->group(function () {
+    Route::prefix('teacher/lms')->name('teacher.lms.')->middleware('spatie.role:teacher')->group(function () {
         Route::get('/', [TeacherLmsController::class, 'index'])->name('index');
         Route::get('/sessions/create', [TeacherLmsController::class, 'createSession'])->name('create_session');
         Route::post('/sessions', [TeacherLmsController::class, 'storeSession'])->name('store_session');
@@ -76,7 +90,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/change-password', [TeacherLmsController::class, 'changePassword'])->name('change_password.store');
     });
 
-    Route::prefix('student/lms')->name('student.lms.')->middleware('role:student')->group(function () {
+    Route::prefix('student/lms')->name('student.lms.')->middleware('spatie.role:student')->group(function () {
         Route::get('/', [StudentLmsController::class, 'index'])->name('index');
         Route::get('/sessions/{classSession}', [StudentLmsController::class, 'showSession'])->name('show_session');
         Route::get('/assignments/{assignment}/submit', [StudentLmsController::class, 'createSubmission'])->name('create_submission');
