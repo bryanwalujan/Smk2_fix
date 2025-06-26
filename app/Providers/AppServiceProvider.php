@@ -3,21 +3,18 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use App\Services\HolidayService;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
-    public function register(): void
+    public function register()
     {
-        //
+        $this->app->singleton(HolidayService::class, function ($app) {
+            return new HolidayService();
+        });
     }
 
-    /**
-     * Bootstrap any application services.
-     */
-    public function boot(): void
+    public function boot()
     {
         //
     }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tambah Jadwal - {{ $classroom->full_name }}</title>
+    <title>Edit Jadwal - {{ $classroom->full_name }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -11,7 +11,7 @@
     @include('layouts.navbar-admin')
 
     <div class="container mx-auto px-4 py-8">
-        <h1 class="text-2xl font-bold mb-4 text-gray-800">Tambah Jadwal untuk {{ $classroom->full_name }}</h1>
+        <h1 class="text-2xl font-bold mb-4 text-gray-800">Edit Jadwal untuk {{ $classroom->full_name }}</h1>
 
         @if (session('error'))
             <div class="mb-6 p-4 bg-red-100 text-red-700 border-l-4 border-red-500 rounded-lg flex items-center">
@@ -21,15 +21,16 @@
         @endif
 
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <form action="{{ route('schedules.store', $classroom) }}" method="POST">
+            <form action="{{ route('schedules.update', [$classroom, $schedule]) }}" method="POST">
                 @csrf
+                @method('PUT')
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label for="subject_id" class="block text-sm font-medium text-gray-700">Mata Pelajaran</label>
                         <select id="subject_id" name="subject_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                             <option value="">Pilih Mata Pelajaran</option>
                             @foreach ($subjects as $id => $name)
-                                <option value="{{ $id }}">{{ $name }}</option>
+                                <option value="{{ $id }}" {{ $schedule->subject_id == $id ? 'selected' : '' }}>{{ $name }}</option>
                             @endforeach
                         </select>
                         @error('subject_id')
@@ -41,7 +42,7 @@
                         <select id="teacher_id" name="teacher_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                             <option value="">Pilih Guru</option>
                             @foreach ($teachers as $teacher)
-                                <option value="{{ $teacher->id }}">{{ $teacher->name }}</option>
+                                <option value="{{ $teacher->id }}" {{ $schedule->teacher_id == $teacher->id ? 'selected' : '' }}>{{ $teacher->name }}</option>
                             @endforeach
                         </select>
                         @error('teacher_id')
@@ -52,11 +53,11 @@
                         <label for="day" class="block text-sm font-medium text-gray-700">Hari</label>
                         <select id="day" name="day" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                             <option value="">Pilih Hari</option>
-                            <option value="Senin">Senin</option>
-                            <option value="Selasa">Selasa</option>
-                            <option value="Rabu">Rabu</option>
-                            <option value="Kamis">Kamis</option>
-                            <option value="Jumat">Jumat</option>
+                            <option value="Senin" {{ $schedule->day == 'Senin' ? 'selected' : '' }}>Senin</option>
+                            <option value="Selasa" {{ $schedule->day == 'Selasa' ? 'selected' : '' }}>Selasa</option>
+                            <option value="Rabu" {{ $schedule->day == 'Rabu' ? 'selected' : '' }}>Rabu</option>
+                            <option value="Kamis" {{ $schedule->day == 'Kamis' ? 'selected' : '' }}>Kamis</option>
+                            <option value="Jumat" {{ $schedule->day == 'Jumat' ? 'selected' : '' }}>Jumat</option>
                         </select>
                         @error('day')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -64,14 +65,16 @@
                     </div>
                     <div>
                         <label for="start_time" class="block text-sm font-medium text-gray-700">Waktu Mulai</label>
-                        <input type="time" id="start_time" name="start_time" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <input type="time" id="start_time" name="start_time" value="{{ $schedule->start_time }}" 
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         @error('start_time')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
                     <div>
                         <label for="end_time" class="block text-sm font-medium text-gray-700">Waktu Selesai</label>
-                        <input type="time" id="end_time" name="end_time" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <input type="time" id="end_time" name="end_time" value="{{ $schedule->end_time }}" 
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         @error('end_time')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror

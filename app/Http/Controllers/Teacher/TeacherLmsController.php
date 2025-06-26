@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ClassSession;
 use App\Models\Material;
 use App\Models\Assignment;
+use App\Models\Submission;
 use App\Models\TeacherClassroomSubject;
 use App\Models\Classroom;
 use Illuminate\Http\Request;
@@ -16,6 +17,11 @@ use Illuminate\Support\Carbon;
 
 class TeacherLmsController extends Controller
 {
+    /**
+     * Display the teacher's LMS dashboard with admin-created class schedules.
+     *
+     * @return \Illuminate\View\View
+     */
     public function index()
     {
         $teacher = Auth::user()->teacher;
@@ -25,15 +31,17 @@ class TeacherLmsController extends Controller
             ->pluck('subject_name', 'classroom_id')
             ->toArray();
         
-        // Get today's classes
+        // Get today's classes (admin-created)
         $today = Carbon::today()->translatedFormat('l'); // e.g., "Senin"
         $classSessions = ClassSession::where('teacher_id', $teacher->id)
             ->where('day_of_week', $today)
+            ->whereNotNull('created_by') // Ensure admin-created
             ->with('classroom')
             ->get();
         
-        // Get all classes (for the new section)
+        // Get all classes (admin-created)
         $allClassSessions = ClassSession::where('teacher_id', $teacher->id)
+            ->whereNotNull('created_by')
             ->with('classroom')
             ->orderByRaw("FIELD(day_of_week, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu')")
             ->orderBy('start_time')
@@ -56,95 +64,12 @@ class TeacherLmsController extends Controller
         ));
     }
 
-    public function createSession()
-    {
-        $teacher = Auth::user()->teacher;
-        // Ambil semua kelas
-        $classrooms = Classroom::all()->pluck('full_name', 'id')->toArray();
-        // Ambil semua mata pelajaran berdasarkan teacher_id saja
-        $subjects = TeacherClassroomSubject::where('teacher_id', $teacher->id)
-            ->pluck('subject_name')
-            ->unique()
-            ->values()
-            ->toArray();
-        return view('teacher.lms.create_session', compact('classrooms', 'subjects'));
-    }
-
-    public function storeSession(Request $request)
-    {
-        $teacher = Auth::user()->teacher;
-        $request->validate([
-            'classroom_id' => 'required|exists:classrooms,id',
-            'subject_name' => 'required|string|max:255',
-            'day_of_week' => 'required|in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu,Minggu',
-            'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
-        ]);
-
-        // Validasi bahwa subject_name sesuai dengan teacher_classroom_subject untuk teacher_id
-        $validSubject = TeacherClassroomSubject::where('teacher_id', $teacher->id)
-            ->where('subject_name', $request->subject_name)
-            ->exists();
-
-        if (!$validSubject) {
-            return back()->withErrors(['subject_name' => 'Mata pelajaran tidak valid untuk guru ini.']);
-        }
-
-        ClassSession::create([
-            'teacher_id' => $teacher->id,
-            'classroom_id' => $request->classroom_id,
-            'subject_name' => $request->subject_name,
-            'day_of_week' => $request->day_of_week,
-            'start_time' => $request->start_time,
-            'end_time' => $request->end_time,
-        ]);
-
-        return redirect()->route('teacher.lms.index')->with('success', 'Sesi kelas berhasil dibuat.');
-    }
-
-    public function editSession(ClassSession $classSession)
-    {
-        $this->authorizeTeacher($classSession);
-        $teacher = Auth::user()->teacher;
-        // Ambil semua kelas
-        $classrooms = Classroom::all()->pluck('full_name', 'id')->toArray();
-        // Ambil semua mata pelajaran berdasarkan teacher_id saja
-        $subjects = TeacherClassroomSubject::where('teacher_id', $teacher->id)
-            ->pluck('subject_name')
-            ->unique()
-            ->values()
-            ->toArray();
-        return view('teacher.lms.edit_session', compact('classSession', 'classrooms', 'subjects'));
-    }
-
-    public function updateSession(Request $request, ClassSession $classSession)
-    {
-        $this->authorizeTeacher($classSession);
-        $teacher = Auth::user()->teacher;
-        $request->validate([
-            'classroom_id' => 'required|exists:classrooms,id',
-            'subject_name' => 'required|string|max:255',
-            'day_of_week' => 'required|in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu,Minggu',
-            'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
-        ]);
-
-        // Validasi bahwa subject_name sesuai dengan teacher_classroom_subject untuk teacher_id
-        $validSubject = TeacherClassroomSubject::where('teacher_id', $teacher->id)
-            ->where('subject_name', $request->subject_name)
-            ->exists();
-
-        if (!$validSubject) {
-            return back()->withErrors(['subject_name' => 'Mata pelajaran tidak valid untuk guru ini.']);
-        }
-
-        $classSession->update($request->only([
-            'classroom_id', 'subject_name', 'day_of_week', 'start_time', 'end_time'
-        ]));
-
-        return redirect()->route('teacher.lms.index')->with('success', 'Sesi kelas berhasil diperbarui.');
-    }
-
+    /**
+     * Show a class session with its materials and assignments.
+     *
+     * @param ClassSession $classSession
+     * @return \Illuminate\View\View
+     */
     public function showSession(ClassSession $classSession)
     {
         $this->authorizeTeacher($classSession);
@@ -152,19 +77,25 @@ class TeacherLmsController extends Controller
         return view('teacher.lms.show_session', compact('classSession'));
     }
 
-    public function destroySession(ClassSession $classSession)
-    {
-        $this->authorizeTeacher($classSession);
-        $classSession->delete();
-        return redirect()->route('teacher.lms.index')->with('success', 'Sesi kelas berhasil dihapus.');
-    }
-
+    /**
+     * Show form to create a material for a class session.
+     *
+     * @param ClassSession $classSession
+     * @return \Illuminate\View\View
+     */
     public function createMaterial(ClassSession $classSession)
     {
         $this->authorizeTeacher($classSession);
         return view('teacher.lms.create_material', compact('classSession'));
     }
 
+    /**
+     * Store a new material for a class session.
+     *
+     * @param Request $request
+     * @param ClassSession $classSession
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function storeMaterial(Request $request, ClassSession $classSession)
     {
         $this->authorizeTeacher($classSession);
@@ -186,18 +117,40 @@ class TeacherLmsController extends Controller
         return redirect()->route('teacher.lms.show_session', $classSession)->with('success', 'Materi berhasil ditambahkan.');
     }
 
+    /**
+     * Show a material for a class session.
+     *
+     * @param ClassSession $classSession
+     * @param Material $material
+     * @return \Illuminate\View\View
+     */
     public function showMaterial(ClassSession $classSession, Material $material)
     {
         $this->authorizeTeacher($classSession);
         return view('teacher.lms.show_material', compact('classSession', 'material'));
     }
 
+    /**
+     * Show form to edit a material.
+     *
+     * @param ClassSession $classSession
+     * @param Material $material
+     * @return \Illuminate\View\View
+     */
     public function editMaterial(ClassSession $classSession, Material $material)
     {
         $this->authorizeTeacher($classSession);
         return view('teacher.lms.edit_material', compact('classSession', 'material'));
     }
 
+    /**
+     * Update a material.
+     *
+     * @param Request $request
+     * @param ClassSession $classSession
+     * @param Material $material
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function updateMaterial(Request $request, ClassSession $classSession, Material $material)
     {
         $this->authorizeTeacher($classSession);
@@ -210,7 +163,6 @@ class TeacherLmsController extends Controller
         $data = $request->only(['title', 'content']);
 
         if ($request->hasFile('file')) {
-            // Delete old file if exists
             if ($material->file_path) {
                 Storage::disk('public')->delete($material->file_path);
             }
@@ -222,6 +174,13 @@ class TeacherLmsController extends Controller
         return redirect()->route('teacher.lms.show_session', $classSession)->with('success', 'Materi berhasil diperbarui.');
     }
 
+    /**
+     * Delete a material.
+     *
+     * @param ClassSession $classSession
+     * @param Material $material
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function destroyMaterial(ClassSession $classSession, Material $material)
     {
         $this->authorizeTeacher($classSession);
@@ -232,12 +191,25 @@ class TeacherLmsController extends Controller
         return redirect()->route('teacher.lms.show_session', $classSession)->with('success', 'Materi berhasil dihapus.');
     }
 
+    /**
+     * Show form to create an assignment for a class session.
+     *
+     * @param ClassSession $classSession
+     * @return \Illuminate\View\View
+     */
     public function createAssignment(ClassSession $classSession)
     {
         $this->authorizeTeacher($classSession);
         return view('teacher.lms.create_assignment', compact('classSession'));
     }
 
+    /**
+     * Store a new assignment.
+     *
+     * @param Request $request
+     * @param ClassSession $classSession
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function storeAssignment(Request $request, ClassSession $classSession)
     {
         $this->authorizeTeacher($classSession);
@@ -257,19 +229,41 @@ class TeacherLmsController extends Controller
         return redirect()->route('teacher.lms.show_session', $classSession)->with('success', 'Tugas berhasil ditambahkan.');
     }
 
+    /**
+     * Show an assignment with its submissions.
+     *
+     * @param ClassSession $classSession
+     * @param Assignment $assignment
+     * @return \Illuminate\View\View
+     */
     public function showAssignment(ClassSession $classSession, Assignment $assignment)
     {
         $this->authorizeTeacher($classSession);
-        $assignment->load('submissions');
+        $assignment->load(['submissions.student.user', 'submissions.student.classroom']);
         return view('teacher.lms.show_assignment', compact('classSession', 'assignment'));
     }
 
+    /**
+     * Show form to edit an assignment.
+     *
+     * @param ClassSession $classSession
+     * @param Assignment $assignment
+     * @return \Illuminate\View\View
+     */
     public function editAssignment(ClassSession $classSession, Assignment $assignment)
     {
         $this->authorizeTeacher($classSession);
         return view('teacher.lms.edit_assignment', compact('classSession', 'assignment'));
     }
 
+    /**
+     * Update an assignment.
+     *
+     * @param Request $request
+     * @param ClassSession $classSession
+     * @param Assignment $assignment
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function updateAssignment(Request $request, ClassSession $classSession, Assignment $assignment)
     {
         $this->authorizeTeacher($classSession);
@@ -288,6 +282,13 @@ class TeacherLmsController extends Controller
         return redirect()->route('teacher.lms.show_session', $classSession)->with('success', 'Tugas berhasil diperbarui.');
     }
 
+    /**
+     * Delete an assignment.
+     *
+     * @param ClassSession $classSession
+     * @param Assignment $assignment
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function destroyAssignment(ClassSession $classSession, Assignment $assignment)
     {
         $this->authorizeTeacher($classSession);
@@ -295,6 +296,12 @@ class TeacherLmsController extends Controller
         return redirect()->route('teacher.lms.show_session', $classSession)->with('success', 'Tugas berhasil dihapus.');
     }
 
+    /**
+     * Show submissions for an assignment and allow grading.
+     *
+     * @param Assignment $assignment
+     * @return \Illuminate\View\View
+     */
     public function showSubmissions(Assignment $assignment)
     {
         $this->authorizeTeacher($assignment->classSession);
@@ -302,11 +309,44 @@ class TeacherLmsController extends Controller
         return view('teacher.lms.show_submissions', compact('assignment'));
     }
 
+    /**
+     * Grade a student submission.
+     *
+     * @param Request $request
+     * @param Assignment $assignment
+     * @param Submission $submission
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function gradeSubmission(Request $request, Assignment $assignment, Submission $submission)
+    {
+        $this->authorizeTeacher($assignment->classSession);
+        $request->validate([
+            'score' => 'required|numeric|min:0|max:100',
+        ]);
+
+        $submission->update([
+            'score' => $request->score,
+        ]);
+
+        return redirect()->route('teacher.lms.show_submissions', $assignment)->with('success', 'Nilai tugas berhasil diperbarui.');
+    }
+
+    /**
+     * Show the change password form.
+     *
+     * @return \Illuminate\View\View
+     */
     public function showChangePasswordForm()
     {
         return view('teacher.lms.change_password');
     }
 
+    /**
+     * Update the teacher's password.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function changePassword(Request $request)
     {
         $user = Auth::user();
@@ -327,6 +367,12 @@ class TeacherLmsController extends Controller
         return redirect()->route('teacher.lms.index')->with('success', 'Password berhasil diganti.');
     }
 
+    /**
+     * Authorize teacher access to a class session.
+     *
+     * @param ClassSession $classSession
+     * @return void
+     */
     protected function authorizeTeacher(ClassSession $classSession)
     {
         if ($classSession->teacher_id !== Auth::user()->teacher->id) {

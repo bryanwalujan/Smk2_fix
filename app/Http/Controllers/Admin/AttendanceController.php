@@ -7,6 +7,7 @@ use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\StudentAttendance;
 use App\Models\TeacherAttendance;
+use App\Services\HolidayService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,13 @@ use Carbon\Carbon;
  */
 class AttendanceController extends Controller
 {
+    protected $holidayService;
+
+    public function __construct(HolidayService $holidayService)
+    {
+        $this->holidayService = $holidayService;
+    }
+
     /**
      * Menampilkan daftar absensi berdasarkan tanggal dan tipe pengguna.
      *
@@ -26,12 +34,19 @@ class AttendanceController extends Controller
      */
     public function index(Request $request)
     {
-        // Ambil tanggal dari input, default ke hari ini
         $date = $request->input('date', now()->toDateString());
-        // Ambil tipe pengguna, default ke 'all'
         $type = $request->input('type', 'all');
 
-        // Query absensi siswa
+        if ($this->holidayService->isHoliday(Carbon::parse($date))) {
+            return view('admin.attendance.index', [
+                'attendances' => collect(),
+                'date' => $date,
+                'type' => $type,
+                'isHoliday' => true,
+                'holidayMessage' => 'Tanggal ini adalah hari libur (akhir pekan atau hari libur nasional).'
+            ]);
+        }
+
         $query = StudentAttendance::query()
             ->select(
                 'student_attendances.id',
@@ -46,7 +61,6 @@ class AttendanceController extends Controller
             ->join('students', 'student_attendances.student_id', '=', 'students.id')
             ->whereDate('student_attendances.tanggal', $date);
 
-        // Tambahkan absensi guru jika tipe 'all' atau 'teacher'
         if ($type === 'all' || $type === 'teacher') {
             $teacherQuery = TeacherAttendance::query()
                 ->select(
@@ -69,10 +83,8 @@ class AttendanceController extends Controller
             }
         }
 
-        // Ambil data dan urutkan berdasarkan tanggal dan waktu masuk
         $attendances = $query->orderBy('tanggal', 'desc')->orderBy('waktu_masuk', 'desc')->get();
 
-        // Kembalikan view dengan data
         return view('admin.attendance.index', compact('attendances', 'date', 'type'));
     }
 
@@ -83,7 +95,10 @@ class AttendanceController extends Controller
      */
     public function create()
     {
-        // Ambil daftar siswa dan guru untuk dropdown
+        if ($this->holidayService->isHoliday(now())) {
+            return redirect()->route('attendance.index')->with('error', 'Tidak dapat membuat absensi pada hari libur.');
+        }
+
         $students = Student::all()->pluck('name', 'id');
         $teachers = Teacher::all()->pluck('name', 'id');
 
@@ -98,28 +113,28 @@ class AttendanceController extends Controller
      */
     public function store(Request $request)
     {
-        // Validasi input form
         $request->validate([
             'user_type' => 'required|in:student,teacher',
             'user_id' => 'required|integer',
             'tanggal' => 'required|date',
+            'waktu_masuk' => 'nullable|date_format:H:i',
             'waktu_pulang' => 'nullable|date_format:H:i',
-            'status' => 'required|in:hadir,izin,sakit,alpa',
+            'status' => 'required|in:hadir,tidak_hadir,izin,sakit',
             'metode_absen' => 'required|in:manual,barcode',
         ]);
 
         try {
+            if ($this->holidayService->isHoliday(Carbon::parse($request->tanggal))) {
+                return redirect()->route('attendance.index')->with('error', 'Tidak dapat mencatat absensi pada hari libur.');
+            }
+
             $userType = $request->user_type;
             $userId = $request->user_id;
             $today = $request->tanggal;
-            $currentTime = now()->toTimeString();
-
-            // Ambil nama pengguna berdasarkan tipe
             $name = $userType === 'student' ? Student::findOrFail($userId)->name : Teacher::findOrFail($userId)->name;
             $model = $userType === 'student' ? StudentAttendance::class : TeacherAttendance::class;
             $idField = $userType === 'student' ? 'student_id' : 'teacher_id';
 
-            // Cek apakah sudah ada absensi untuk pengguna dan tanggal ini
             $existingAttendance = $model::where($idField, $userId)
                 ->whereDate('tanggal', $today)
                 ->first();
@@ -128,20 +143,18 @@ class AttendanceController extends Controller
                 return redirect()->route('attendance.index')->with('error', $name . ' sudah memiliki absensi untuk tanggal ini.');
             }
 
-            // Validasi waktu pulang harus setelah waktu masuk
-            if ($request->waktu_pulang) {
-                $waktuMasuk = Carbon::parse($today . ' ' . $currentTime);
+            if ($request->waktu_pulang && $request->waktu_masuk) {
+                $waktuMasuk = Carbon::parse($today . ' ' . $request->waktu_masuk);
                 $waktuPulang = Carbon::parse($today . ' ' . $request->waktu_pulang);
                 if ($waktuPulang->lte($waktuMasuk)) {
                     return redirect()->route('attendance.index')->with('error', 'Waktu pulang harus setelah waktu masuk.');
                 }
             }
 
-            // Simpan absensi baru
             $model::create([
                 $idField => $userId,
                 'tanggal' => $today,
-                'waktu_masuk' => $currentTime,
+                'waktu_masuk' => $request->waktu_masuk ?? now()->format('H:i'),
                 'waktu_pulang' => $request->waktu_pulang,
                 'status' => $request->status,
                 'metode_absen' => $request->metode_absen,
@@ -158,20 +171,21 @@ class AttendanceController extends Controller
      * Menampilkan form untuk mengedit absensi.
      *
      * @param int $id ID absensi
-     * @param Request 
-     * @return \Illuminate\View\View 
+     * @param Request $request
+     * @return \Illuminate\View\View
      */
     public function edit($id, Request $request)
     {
-      
         $type = $request->query('type', 'student');
 
-        // Ambil data absensi berdasarkan tipe
         $attendance = $type === 'student'
             ? StudentAttendance::findOrFail($id)
             : TeacherAttendance::findOrFail($id);
 
-        // Ambil daftar siswa dan guru untuk dropdown
+        if ($this->holidayService->isHoliday($attendance->tanggal)) {
+            return redirect()->route('attendance.index')->with('error', 'Tidak dapat mengedit absensi pada hari libur.');
+        }
+
         $students = Student::all()->pluck('name', 'id');
         $teachers = Teacher::all()->pluck('name', 'id');
 
@@ -179,9 +193,10 @@ class AttendanceController extends Controller
     }
 
     /**
+     * Memperbarui absensi.
      *
-     * @param Request 
-     * @param int 
+     * @param Request $request
+     * @param int $id
      * @return \Illuminate\Http\RedirectResponse
      */
     public function update(Request $request, $id)
@@ -194,11 +209,15 @@ class AttendanceController extends Controller
             'tanggal' => 'required|date',
             'waktu_masuk' => 'nullable|date_format:H:i',
             'waktu_pulang' => 'nullable|date_format:H:i',
-            'status' => 'required|in:hadir,izin,sakit,alpa',
+            'status' => 'required|in:hadir,tidak_hadir,izin,sakit',
             'metode_absen' => 'required|in:manual,barcode',
         ]);
 
         try {
+            if ($this->holidayService->isHoliday(Carbon::parse($request->tanggal))) {
+                return redirect()->route('attendance.index')->with('error', 'Tidak dapat memperbarui absensi pada hari libur.');
+            }
+
             $userType = $request->user_type;
             $userId = $request->user_id;
             $model = $userType === 'student' ? StudentAttendance::class : TeacherAttendance::class;
@@ -222,7 +241,7 @@ class AttendanceController extends Controller
                 throw new \Exception('Waktu masuk tidak boleh kosong.');
             }
 
-            if ($request->waktu_pulang) {
+            if ($request->waktu_pulang && $waktuMasuk) {
                 $waktuMasukCarbon = Carbon::parse($request->tanggal . ' ' . $waktuMasuk);
                 $waktuPulangCarbon = Carbon::parse($request->tanggal . ' ' . $request->waktu_pulang);
                 if ($waktuPulangCarbon->lte($waktuMasukCarbon)) {
@@ -247,34 +266,45 @@ class AttendanceController extends Controller
     }
 
     /**
-     * 
+     * Menampilkan halaman scan barcode.
      *
      * @return \Illuminate\View\View
      */
     public function showScanPage()
     {
+        if ($this->holidayService->isHoliday(now())) {
+            return redirect()->route('attendance.index')->with('error', 'Tidak dapat melakukan scan absensi pada hari libur.');
+        }
+
         return view('admin.attendance.scan');
     }
 
     /**
-     * @param Request
-     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse JSON untuk AJAX atau redirect
+     * Memproses scan barcode untuk absensi.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
      */
     public function scanBarcode(Request $request)
     {
-
         $request->validate([
             'barcode' => 'required|string',
         ]);
 
         try {
+            if ($this->holidayService->isHoliday(now())) {
+                return $request->expectsJson()
+                    ? response()->json(['success' => false, 'message' => 'Tidak dapat mencatat absensi pada hari libur.'], 403)
+                    : redirect()->route('attendance.index')->with('error', 'Tidak dapat mencatat absensi pada hari libur.');
+            }
+
             $barcode = $request->barcode;
             $today = now()->toDateString();
-            $currentTime = now()->toTimeString();
+            $currentTime = now()->format('H:i');
 
             $student = Student::where('barcode', $barcode)->first();
             if ($student) {
-                $result = $this->processAttendance(
+                $result = $this->processStudentAttendance(
                     StudentAttendance::class,
                     'student_id',
                     $student->id,
@@ -282,15 +312,14 @@ class AttendanceController extends Controller
                     $currentTime,
                     $student->name
                 );
-                if ($request->expectsJson()) {
-                    return response()->json($result);
-                }
-                return redirect()->route('attendance.index')->with($result['success'] ? 'success' : 'error', $result['message']);
+                return $request->expectsJson()
+                    ? response()->json($result)
+                    : redirect()->route('attendance.index')->with($result['success'] ? 'success' : 'error', $result['message']);
             }
 
             $teacher = Teacher::where('barcode', $barcode)->first();
             if ($teacher) {
-                $result = $this->processAttendance(
+                $result = $this->processTeacherAttendance(
                     TeacherAttendance::class,
                     'teacher_id',
                     $teacher->id,
@@ -298,45 +327,86 @@ class AttendanceController extends Controller
                     $currentTime,
                     $teacher->name
                 );
-                if ($request->expectsJson()) {
-                    return response()->json($result);
-                }
-                return redirect()->route('attendance.index')->with($result['success'] ? 'success' : 'error', $result['message']);
+                return $request->expectsJson()
+                    ? response()->json($result)
+                    : redirect()->route('attendance.index')->with($result['success'] ? 'success' : 'error', $result['message']);
             }
 
             $errorResult = [
                 'success' => false,
                 'message' => 'Barcode tidak valid atau tidak terdaftar',
             ];
-            if ($request->expectsJson()) {
-                return response()->json($errorResult, 400);
-            }
-            return redirect()->route('attendance.index')->with('error', $errorResult['message']);
+            return $request->expectsJson()
+                ? response()->json($errorResult, 400)
+                : redirect()->route('attendance.index')->with('error', $errorResult['message']);
         } catch (\Exception $e) {
             Log::error('Error scanning barcode: ' . $e->getMessage());
             $errorResult = [
                 'success' => false,
                 'message' => 'Terjadi kesalahan sistem',
             ];
-            if ($request->expectsJson()) {
-                return response()->json($errorResult, 500);
-            }
-            return redirect()->route('attendance.index')->with('error', $errorResult['message']);
+            return $request->expectsJson()
+                ? response()->json($errorResult, 500)
+                : redirect()->route('attendance.index')->with('error', $errorResult['message']);
         }
     }
 
     /**
-     * Memproses logika absensi untuk siswa atau guru.
+     * Memproses absensi siswa (satu kali per hari).
      *
-     * @param string $model Kelas model (StudentAttendance/TeacherAttendance)
-     * @param string $idField Nama kolom ID (student_id/teacher_id)
-     * @param int $id ID pengguna
-     * @param string $today Tanggal hari ini
-     * @param string $currentTime Waktu saat ini
-     * @param string $name Nama pengguna
-     * @return array Hasil proses absensi
+     * @param string $model
+     * @param string $idField
+     * @param int $id
+     * @param string $today
+     * @param string $currentTime
+     * @param string $name
+     * @return array
      */
-    private function processAttendance($model, $idField, $id, $today, $currentTime, $name)
+    private function processStudentAttendance($model, $idField, $id, $today, $currentTime, $name)
+    {
+        $existingAttendance = $model::where($idField, $id)
+            ->whereDate('tanggal', $today)
+            ->first();
+
+        if ($existingAttendance) {
+            return [
+                'success' => false,
+                'message' => $name . ' sudah absen hari ini.',
+                'type' => 'already_done',
+                'name' => $name,
+                'time' => $currentTime,
+            ];
+        }
+
+        $model::create([
+            $idField => $id,
+            'tanggal' => $today,
+            'waktu_masuk' => $currentTime,
+            'status' => 'hadir',
+            'metode_absen' => 'barcode',
+        ]);
+
+        return [
+            'success' => true,
+            'message' => 'Absensi ' . $name . ' berhasil dicatat.',
+            'type' => 'check_in',
+            'name' => $name,
+            'time' => $currentTime,
+        ];
+    }
+
+    /**
+     * Memproses absensi guru (mengikuti logika lama: masuk dan pulang).
+     *
+     * @param string $model
+     * @param string $idField
+     * @param int $id
+     * @param string $today
+     * @param string $currentTime
+     * @param string $name
+     * @return array
+     */
+    private function processTeacherAttendance($model, $idField, $id, $today, $currentTime, $name)
     {
         $existingAttendance = $model::where($idField, $id)
             ->whereDate('tanggal', $today)

@@ -63,7 +63,7 @@
                             <tr class="hover:bg-gray-50 transition">
                                 <td class="py-4 px-6 whitespace-nowrap">
                                     <a href="{{ route('classrooms.show', $classroom) }}" 
-                                       class="font-medium text-blue-600 hover:text-blue-800 hover:underline">
+                                       class="font-medium text-blue-600 hover:underline">
                                         {{ $classroom->full_name }}
                                     </a>
                                 </td>
@@ -72,6 +72,16 @@
                                 <td class="py-4 px-6 text-gray-600 font-mono">{{ $classroom->class_code }}</td>
                                 <td class="py-4 px-6 text-right whitespace-nowrap">
                                     <div class="flex justify-end gap-2">
+                                        <a href="{{ route('classrooms.show', $classroom) }}" 
+                                           class="p-2 text-gray-600 hover:bg-gray-50 rounded-full transition"
+                                           title="Lihat Detail">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ route('schedules.create', $classroom) }}" 
+                                           class="p-2 text-green-600 hover:bg-green-50 rounded-full transition"
+                                           title="Tambah Jadwal">
+                                            <i class="fas fa-calendar-plus"></i>
+                                        </a>
                                         <a href="{{ route('classrooms.edit', $classroom) }}" 
                                            class="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition"
                                            title="Edit">

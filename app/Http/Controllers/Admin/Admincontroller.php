@@ -8,12 +8,14 @@ use App\Models\Teacher;
 use App\Models\Classroom;
 use App\Models\Subject;
 use App\Models\StudentAttendance;
+use App\Models\TeacherAttendance;
 use App\Models\User;
 use App\Exports\StudentsExport;
 use App\Exports\TeachersExport;
 use App\Exports\ClassroomsExport;
 use App\Exports\SubjectsExport;
 use App\Exports\AttendanceExport;
+use App\Services\HolidayService;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -26,9 +28,20 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Carbon\Carbon;
 
 class AdminController extends Controller
 {
+    use AuthorizesRequests;
+
+    protected $holidayService;
+
+    public function __construct(HolidayService $holidayService)
+    {
+        $this->holidayService = $holidayService;
+    }
+
     public function dashboard()
     {
         $roles = Role::whereIn('name', ['teacher', 'student'])->get();
@@ -36,24 +49,23 @@ class AdminController extends Controller
         return view('admin.dashboard', compact('roles', 'permissions'));
     }
 
-       public function togglePermission(Request $request)
+    public function togglePermission(Request $request)
     {
-        try {
-            // Cek apakah user memiliki izin manage_roles
-            if (!auth()->user()->can('manage_roles')) {
-                return response()->json([
-                    'success' => false, 
-                    'message' => 'Anda tidak memiliki izin untuk mengelola role.'
-                ], 403);
-            }
+        $request->headers->set('Accept', 'application/json');
 
-            // Validasi input
+        try {
             $validated = $request->validate([
                 'role' => 'required|string|in:teacher,student',
                 'permission' => 'required|string|exists:permissions,name',
             ]);
 
-            // Cari role berdasarkan name
+            if (!auth()->user()->can('manage_roles')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki izin untuk mengelola role.'
+                ], 403);
+            }
+
             $role = Role::where('name', $validated['role'])->first();
             if (!$role) {
                 return response()->json([
@@ -62,7 +74,6 @@ class AdminController extends Controller
                 ], 404);
             }
 
-            // Cari permission berdasarkan name
             $permission = Permission::where('name', $validated['permission'])->first();
             if (!$permission) {
                 return response()->json([
@@ -71,7 +82,6 @@ class AdminController extends Controller
                 ], 404);
             }
 
-            // Toggle permission
             if ($role->hasPermissionTo($permission)) {
                 $role->revokePermissionTo($permission);
                 $message = "Izin '{$permission->name}' berhasil dihapus dari role {$role->name}.";
@@ -82,8 +92,7 @@ class AdminController extends Controller
                 $action = 'granted';
             }
 
-            // Log aktivitas
-            Log::info('Permission toggled successfully', [
+            Log::info('Permission toggled', [
                 'user_id' => auth()->id(),
                 'role' => $role->name,
                 'permission' => $permission->name,
@@ -99,12 +108,15 @@ class AdminController extends Controller
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::warning('Validation failed in togglePermission', [
+                'errors' => $e->errors(),
+                'request' => $request->all()
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Data yang dikirim tidak valid.',
                 'errors' => $e->errors()
             ], 422);
-
         } catch (\Exception $e) {
             Log::error('Failed to toggle permission', [
                 'user_id' => auth()->id(),
@@ -112,24 +124,22 @@ class AdminController extends Controller
                 'request' => $request->all(),
                 'trace' => $e->getTraceAsString()
             ]);
-
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan sistem. Silakan coba lagi.'
+                'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage()
             ], 500);
         }
     }
 
-    // ... (semua method lainnya tetap sama seperti sebelumnya)
-    // Template Excel untuk Siswa
     public function exportStudentsTemplate()
     {
+        $this->authorize('export_excel');
         $headings = ['NIS', 'Nama', 'Email', 'Tingkat', 'Jurusan', 'Kode Kelas'];
         $data = [
             ['1234567890', 'John Doe', 'john@example.com', '12', 'RPL', 'A'],
         ];
 
-        return Excel::download(new class($headings, $data) implements FromArray, WithHeadings {
+        return Excel::download(new class ($headings, $data) implements FromArray, WithHeadings {
             protected $headings;
             protected $data;
 
@@ -151,7 +161,6 @@ class AdminController extends Controller
         }, 'students_template.xlsx');
     }
 
-    // Import Siswa
     public function importStudents(Request $request)
     {
         $this->authorize('manage_users');
@@ -191,9 +200,9 @@ class AdminController extends Controller
                 }
 
                 $classroom = Classroom::where('level', $level)
-                                     ->where('major', $major)
-                                     ->where('class_code', $classCode)
-                                     ->first();
+                    ->where('major', $major)
+                    ->where('class_code', $classCode)
+                    ->first();
 
                 if (!$classroom) {
                     $errors[] = "Baris ke-" . ($index + 2) . ": Kelas '$level $major $classCode' belum terdaftar. Harap masukkan data kelas terlebih dahulu di menu Kelas.";
@@ -243,12 +252,12 @@ class AdminController extends Controller
                     throw new \Exception('Direktori qrcodes tidak memiliki izin tulis.');
                 }
                 QrCode::format('svg')
-                      ->size(400)
-                      ->margin(3)
-                      ->errorCorrection('H')
-                      ->color(40, 40, 40)
-                      ->backgroundColor(245, 245, 245)
-                      ->generate((string)$barcodeId, public_path('qrcodes/student_' . $barcodeId . '.svg'));
+                    ->size(400)
+                    ->margin(3)
+                    ->errorCorrection('H')
+                    ->color(40, 40, 40)
+                    ->backgroundColor(245, 245, 245)
+                    ->generate((string) $barcodeId, public_path('qrcodes/student_' . $barcodeId . '.svg'));
 
                 DB::commit();
             }
@@ -268,15 +277,15 @@ class AdminController extends Controller
         }
     }
 
-    // Template Excel untuk Guru
     public function exportTeachersTemplate()
     {
+        $this->authorize('export_excel');
         $headings = ['NIP', 'Nama', 'Email', 'Mata Pelajaran', 'Tingkat', 'Jurusan', 'Kode Kelas'];
         $data = [
             ['123456789', 'Jane Doe', 'jane@example.com', 'Matematika, Bahasa Inggris', '12', 'RPL', 'A'],
         ];
 
-        return Excel::download(new class($headings, $data) implements FromArray, WithHeadings {
+        return Excel::download(new class ($headings, $data) implements FromArray, WithHeadings {
             protected $headings;
             protected $data;
 
@@ -298,7 +307,6 @@ class AdminController extends Controller
         }, 'teachers_template.xlsx');
     }
 
-    // Import Guru
     public function importTeachers(Request $request)
     {
         $this->authorize('manage_users');
@@ -341,9 +349,9 @@ class AdminController extends Controller
                     }
 
                     $classroom = Classroom::where('level', $level)
-                                         ->where('major', $major)
-                                         ->where('class_code', $classCode)
-                                         ->first();
+                        ->where('major', $major)
+                        ->where('class_code', $classCode)
+                        ->first();
 
                     if (!$classroom) {
                         $errors[] = "Baris ke-" . ($index + 2) . ": Kelas '$level $major $classCode' belum terdaftar. Harap masukkan data kelas terlebih dahulu di menu Kelas.";
@@ -417,12 +425,12 @@ class AdminController extends Controller
                     throw new \Exception('Direktori qrcodes tidak memiliki izin tulis.');
                 }
                 QrCode::format('svg')
-                      ->size(400)
-                      ->margin(3)
-                      ->errorCorrection('H')
-                      ->color(40, 40, 40)
-                      ->backgroundColor(245, 245, 245)
-                      ->generate((string)$barcodeId, public_path('qrcodes/teacher_' . $barcodeId . '.svg'));
+                    ->size(400)
+                    ->margin(3)
+                    ->errorCorrection('H')
+                    ->color(40, 40, 40)
+                    ->backgroundColor(245, 245, 245)
+                    ->generate((string) $barcodeId, public_path('qrcodes/teacher_' . $barcodeId . '.svg'));
 
                 DB::commit();
             }
@@ -442,15 +450,15 @@ class AdminController extends Controller
         }
     }
 
-    // Template Excel untuk Kelas
     public function exportClassroomsTemplate()
     {
+        $this->authorize('export_excel');
         $headings = ['Tingkat', 'Jurusan', 'Kode Kelas'];
         $data = [
             ['12', 'RPL', 'A'],
         ];
 
-        return Excel::download(new class($headings, $data) implements FromArray, WithHeadings {
+        return Excel::download(new class ($headings, $data) implements FromArray, WithHeadings {
             protected $headings;
             protected $data;
 
@@ -472,7 +480,6 @@ class AdminController extends Controller
         }, 'classrooms_template.xlsx');
     }
 
-    // Import Kelas
     public function importClassrooms(Request $request)
     {
         $this->authorize('manage_users');
@@ -508,10 +515,8 @@ class AdminController extends Controller
                     continue;
                 }
 
-                $fullName = "$level $major $classCode";
-
                 if (Classroom::where('level', $level)->where('major', $major)->where('class_code', $classCode)->exists()) {
-                    $errors[] = "Baris ke-" . ($index + 2) . ": Kelas '$fullName' sudah terdaftar. Gunakan kombinasi Tingkat, Jurusan, dan Kode Kelas lain.";
+                    $errors[] = "Baris ke-" . ($index + 2) . ": Kelas '$level $major $classCode' sudah terdaftar. Gunakan kombinasi lain.";
                     continue;
                 }
 
@@ -519,7 +524,6 @@ class AdminController extends Controller
                     'level' => $level,
                     'major' => $major,
                     'class_code' => $classCode,
-                    'full_name' => $fullName,
                 ]);
             }
 
@@ -537,15 +541,15 @@ class AdminController extends Controller
         }
     }
 
-    // Template Excel untuk Mata Pelajaran
     public function exportSubjectsTemplate()
     {
+        $this->authorize('export_excel');
         $headings = ['Nama Mata Pelajaran'];
         $data = [
             ['Matematika'],
         ];
 
-        return Excel::download(new class($headings, $data) implements FromArray, WithHeadings {
+        return Excel::download(new class ($headings, $data) implements FromArray, WithHeadings {
             protected $headings;
             protected $data;
 
@@ -567,7 +571,6 @@ class AdminController extends Controller
         }, 'subjects_template.xlsx');
     }
 
-    // Import Mata Pelajaran
     public function importSubjects(Request $request)
     {
         $this->authorize('manage_users');
@@ -625,14 +628,12 @@ class AdminController extends Controller
         }
     }
 
-    // Ekspor Siswa (Excel)
     public function exportStudentsExcel()
     {
         $this->authorize('export_excel');
         return Excel::download(new StudentsExport, 'siswa_' . now()->format('Y-m-d') . '.xlsx');
     }
 
-    // Ekspor Siswa (PDF)
     public function exportStudentsPdf()
     {
         $this->authorize('export_pdf');
@@ -641,14 +642,12 @@ class AdminController extends Controller
         return $pdf->download('siswa_' . now()->format('Y-m-d') . '.pdf');
     }
 
-    // Ekspor Guru (Excel)
     public function exportTeachersExcel()
     {
         $this->authorize('export_excel');
         return Excel::download(new TeachersExport, 'guru_' . now()->format('Y-m-d') . '.xlsx');
     }
 
-    // Ekspor Guru (PDF)
     public function exportTeachersPdf()
     {
         $this->authorize('export_pdf');
@@ -657,14 +656,12 @@ class AdminController extends Controller
         return $pdf->download('guru_' . now()->format('Y-m-d') . '.pdf');
     }
 
-    // Ekspor Kelas (Excel)
     public function exportClassroomsExcel()
     {
         $this->authorize('export_excel');
         return Excel::download(new ClassroomsExport, 'kelas_' . now()->format('Y-m-d') . '.xlsx');
     }
 
-    // Ekspor Kelas (PDF)
     public function exportClassroomsPdf()
     {
         $this->authorize('export_pdf');
@@ -673,14 +670,12 @@ class AdminController extends Controller
         return $pdf->download('kelas_' . now()->format('Y-m-d') . '.pdf');
     }
 
-    // Ekspor Mata Pelajaran (Excel)
     public function exportSubjectsExcel()
     {
         $this->authorize('export_excel');
         return Excel::download(new SubjectsExport, 'mata_pelajaran_' . now()->format('Y-m-d') . '.xlsx');
     }
 
-    // Ekspor Mata Pelajaran (PDF)
     public function exportSubjectsPdf()
     {
         $this->authorize('export_pdf');
@@ -689,19 +684,148 @@ class AdminController extends Controller
         return $pdf->download('mata_pelajaran_' . now()->format('Y-m-d') . '.pdf');
     }
 
-    // Ekspor Kehadiran (Excel)
-    public function exportAttendanceExcel()
+    public function exportAttendanceExcel(Request $request)
     {
-        $this->authorize('export_excel');
-        return Excel::download(new AttendanceExport, 'kehadiran_' . now()->format('Y-m-d') . '.xlsx');
+
+        $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
+        $endDate = $request->input('end_date', Carbon::now()->toDateString());
+        $type = $request->input('type', 'all');
+
+        $validDates = [];
+        $currentDate = Carbon::parse($startDate);
+        while ($currentDate->lte(Carbon::parse($endDate))) {
+            try {
+                if (!$this->holidayService->isHoliday($currentDate)) {
+                    $validDates[] = $currentDate->toDateString();
+                }
+                $currentDate = $this->holidayService->getNextNonHoliday($currentDate);
+            } catch (\Exception $e) {
+                Log::error('HolidayService error in exportAttendanceExcel: ' . $e->getMessage(), [
+                    'date' => $currentDate->toDateString(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                if (!$currentDate->isWeekend()) {
+                    $validDates[] = $currentDate->toDateString();
+                }
+                $currentDate->addDay();
+            }
+        }
+
+        if (empty($validDates)) {
+            return redirect()->back()->with('error', 'Tidak ada hari sekolah dalam rentang tanggal yang dipilih.');
+        }
+
+        $query = StudentAttendance::query()
+            ->select(
+                'student_attendances.id',
+                'students.name as user_name',
+                'student_attendances.tanggal',
+                'student_attendances.waktu_masuk',
+                'student_attendances.waktu_pulang',
+                'student_attendances.status',
+                'student_attendances.metode_absen',
+                DB::raw("'student' as user_type")
+            )
+            ->join('students', 'student_attendances.student_id', '=', 'students.id')
+            ->whereIn(DB::raw('DATE(student_attendances.tanggal)'), $validDates);
+
+        if ($type === 'all' || $type === 'teacher') {
+            $teacherQuery = TeacherAttendance::query()
+                ->select(
+                    'teacher_attendances.id',
+                    'teachers.name as user_name',
+                    'teacher_attendances.tanggal',
+                    'teacher_attendances.waktu_masuk',
+                    'teacher_attendances.waktu_pulang',
+                    'teacher_attendances.status',
+                    'teacher_attendances.metode_absen',
+                    DB::raw("'teacher' as user_type")
+                )
+                ->join('teachers', 'teacher_attendances.teacher_id', '=', 'teachers.id')
+                ->whereIn(DB::raw('DATE(teacher_attendances.tanggal)'), $validDates);
+
+            if ($type === 'all') {
+                $query = $query->union($teacherQuery);
+            } elseif ($type === 'teacher') {
+                $query = $teacherQuery;
+            }
+        }
+
+        $attendances = $query->orderBy('tanggal', 'asc')->get();
+
+        return Excel::download(new AttendanceExport($attendances), 'absensi_' . Carbon::now()->format('Ymd') . '.xlsx');
     }
 
-    // Ekspor Kehadiran (PDF)
-    public function exportAttendancePdf()
+    public function exportAttendancePdf(Request $request)
     {
-        $this->authorize('export_pdf');
-        $attendances = StudentAttendance::with('student')->get();
-        $pdf = Pdf::loadView('admin.exports.attendance_pdf', compact('attendances'));
-        return $pdf->download('kehadiran_' . now()->format('Y-m-d') . '.pdf');
+
+        $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
+        $endDate = $request->input('end_date', Carbon::now()->toDateString());
+        $type = $request->input('type', 'all');
+
+        $validDates = [];
+        $currentDate = Carbon::parse($startDate);
+        while ($currentDate->lte(Carbon::parse($endDate))) {
+            try {
+                if (!$this->holidayService->isHoliday($currentDate)) {
+                    $validDates[] = $currentDate->toDateString();
+                }
+                $currentDate = $this->holidayService->getNextNonHoliday($currentDate);
+            } catch (\Exception $e) {
+                Log::error('HolidayService error in exportAttendancePDF: ' . $e->getMessage(), [
+                    'date' => $currentDate->toDateString(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                if (!$currentDate->isWeekend()) {
+                    $validDates[] = $currentDate->toDateString();
+                }
+                $currentDate->addDay();
+            }
+        }
+
+        if (empty($validDates)) {
+            return redirect()->back()->with('error', 'Tidak ada hari sekolah dalam rentang tanggal yang dipilih.');
+        }
+
+        $query = StudentAttendance::query()
+            ->select(
+                'student_attendances.id',
+                'students.name as user_name',
+                'student_attendances.tanggal',
+                'student_attendances.waktu_masuk',
+                'student_attendances.waktu_pulang',
+                'student_attendances.status',
+                'student_attendances.metode_absen',
+                DB::raw("'student' as user_type")
+            )
+            ->join('students', 'student_attendances.student_id', '=', 'students.id')
+            ->whereIn(DB::raw('DATE(student_attendances.tanggal)'), $validDates);
+
+        if ($type === 'all' || $type === 'teacher') {
+            $teacherQuery = TeacherAttendance::query()
+                ->select(
+                    'teacher_attendances.id',
+                    'teachers.name as user_name',
+                    'teacher_attendances.tanggal',
+                    'teacher_attendances.waktu_masuk',
+                    'teacher_attendances.waktu_pulang',
+                    'teacher_attendances.status',
+                    'teacher_attendances.metode_absen',
+                    DB::raw("'teacher' as user_type")
+                )
+                ->join('teachers', 'teacher_attendances.teacher_id', '=', 'teachers.id')
+                ->whereIn(DB::raw('DATE(teacher_attendances.tanggal)'), $validDates);
+
+            if ($type === 'all') {
+                $query = $query->union($teacherQuery);
+            } elseif ($type === 'teacher') {
+                $query = $teacherQuery;
+            }
+        }
+
+        $attendances = $query->orderBy('tanggal', 'asc')->get();
+
+        $pdf = Pdf::loadView('admin.exports.attendance_pdf', compact('attendances', 'startDate', 'endDate', 'type'));
+        return $pdf->download('absensi_' . Carbon::now()->format('Ymd') . '.pdf');
     }
 }
