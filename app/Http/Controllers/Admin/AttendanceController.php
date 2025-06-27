@@ -11,7 +11,9 @@ use App\Services\HolidayService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
+use App\Mail\StudentAttendanceNotification;
 
 /**
  * Controller untuk mengelola absensi siswa dan guru.
@@ -151,7 +153,7 @@ class AttendanceController extends Controller
                 }
             }
 
-            $model::create([
+            $attendance = $model::create([
                 $idField => $userId,
                 'tanggal' => $today,
                 'waktu_masuk' => $request->waktu_masuk ?? now()->format('H:i'),
@@ -159,6 +161,23 @@ class AttendanceController extends Controller
                 'status' => $request->status,
                 'metode_absen' => $request->metode_absen,
             ]);
+
+            // Kirim notifikasi email untuk absensi siswa (hanya untuk absen masuk)
+            if ($userType === 'student' && $request->status === 'hadir') {
+                $student = Student::findOrFail($userId);
+                $parentEmail = $student->user ? $student->user->email : null;
+                Log::info('Memproses absensi manual untuk siswa: ' . $student->name . ', Email: ' . ($parentEmail ?: 'kosong'));
+                if ($parentEmail) {
+                    try {
+                        Mail::to($parentEmail)->send(new StudentAttendanceNotification($student, $attendance));
+                        Log::info('Email berhasil dikirim ke: ' . $parentEmail);
+                    } catch (\Exception $e) {
+                        Log::error('Gagal mengirim email absensi ke ' . $parentEmail . ': ' . $e->getMessage());
+                    }
+                } else {
+                    Log::warning('Tidak ada email orang tua untuk siswa: ' . $student->name);
+                }
+            }
 
             return redirect()->route('attendance.index')->with('success', 'Absensi untuk ' . $name . ' berhasil ditambahkan.');
         } catch (\Exception $e) {
@@ -304,13 +323,15 @@ class AttendanceController extends Controller
 
             $student = Student::where('barcode', $barcode)->first();
             if ($student) {
+                Log::info('Siswa ditemukan: ' . $student->name . ', Barcode: ' . $barcode . ', Email: ' . ($student->user ? $student->user->email : 'kosong'));
                 $result = $this->processStudentAttendance(
                     StudentAttendance::class,
                     'student_id',
                     $student->id,
                     $today,
                     $currentTime,
-                    $student->name
+                    $student->name,
+                    $student->user ? $student->user->email : null // Ambil email dari tabel users
                 );
                 return $request->expectsJson()
                     ? response()->json($result)
@@ -319,6 +340,7 @@ class AttendanceController extends Controller
 
             $teacher = Teacher::where('barcode', $barcode)->first();
             if ($teacher) {
+                Log::info('Guru ditemukan: ' . $teacher->name . ', Barcode: ' . $barcode);
                 $result = $this->processTeacherAttendance(
                     TeacherAttendance::class,
                     'teacher_id',
@@ -332,6 +354,7 @@ class AttendanceController extends Controller
                     : redirect()->route('attendance.index')->with($result['success'] ? 'success' : 'error', $result['message']);
             }
 
+            Log::warning('Barcode tidak ditemukan: ' . $barcode);
             $errorResult = [
                 'success' => false,
                 'message' => 'Barcode tidak valid atau tidak terdaftar',
@@ -360,15 +383,18 @@ class AttendanceController extends Controller
      * @param string $today
      * @param string $currentTime
      * @param string $name
+     * @param string|null $parentEmail
      * @return array
      */
-    private function processStudentAttendance($model, $idField, $id, $today, $currentTime, $name)
+    private function processStudentAttendance($model, $idField, $id, $today, $currentTime, $name, $parentEmail = null)
     {
+        Log::info('Memproses absensi untuk siswa: ' . $name . ', Email: ' . ($parentEmail ?: 'kosong'));
         $existingAttendance = $model::where($idField, $id)
             ->whereDate('tanggal', $today)
             ->first();
 
         if ($existingAttendance) {
+            Log::info('Absensi sudah ada untuk siswa: ' . $name);
             return [
                 'success' => false,
                 'message' => $name . ' sudah absen hari ini.',
@@ -378,13 +404,27 @@ class AttendanceController extends Controller
             ];
         }
 
-        $model::create([
+        $attendance = $model::create([
             $idField => $id,
             'tanggal' => $today,
             'waktu_masuk' => $currentTime,
             'status' => 'hadir',
             'metode_absen' => 'barcode',
         ]);
+
+        // Kirim notifikasi email ke email orang tua
+        if ($parentEmail) {
+            try {
+                $student = Student::findOrFail($id);
+                Log::info('Mengirim email ke: ' . $parentEmail);
+                Mail::to($parentEmail)->send(new StudentAttendanceNotification($student, $attendance));
+                Log::info('Email berhasil dikirim ke: ' . $parentEmail);
+            } catch (\Exception $e) {
+                Log::error('Gagal mengirim email absensi ke ' . $parentEmail . ': ' . $e->getMessage());
+            }
+        } else {
+            Log::warning('Tidak ada email orang tua untuk siswa: ' . $name);
+        }
 
         return [
             'success' => true,
@@ -408,6 +448,7 @@ class AttendanceController extends Controller
      */
     private function processTeacherAttendance($model, $idField, $id, $today, $currentTime, $name)
     {
+        Log::info('Memproses absensi untuk guru: ' . $name);
         $existingAttendance = $model::where($idField, $id)
             ->whereDate('tanggal', $today)
             ->first();

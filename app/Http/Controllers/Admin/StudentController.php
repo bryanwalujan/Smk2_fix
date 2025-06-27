@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Spatie\Permission\Models\Role;
 
 class StudentController extends Controller
 {
@@ -39,9 +40,12 @@ class StudentController extends Controller
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
-                'password' => Hash::make($request->nis), // Password set to NIS
-                'role' => 'student',
+                'password' => Hash::make($request->nis),
+                'role' => 'student', // Kolom role di tabel users (jika masih digunakan)
             ]);
+
+            // Tugaskan role 'student' ke tabel model_has_roles menggunakan Spatie
+            $user->assignRole('student');
 
             $barcodeId = rand(100000, 999999);
             $student = Student::create([
@@ -62,8 +66,8 @@ class StudentController extends Controller
                   ->size(400)
                   ->margin(3)
                   ->errorCorrection('H')
-                  ->color(0, 75, 150) // Sama seperti TeacherController
-                  ->backgroundColor(245, 245, 245) // Sama seperti TeacherController
+                  ->color(0, 75, 150)
+                  ->backgroundColor(245, 245, 245)
                   ->generate((string)$barcodeId, public_path('qrcodes/student_'.$barcodeId.'.svg'));
 
             return redirect()->route('students.index')->with('success', 'Siswa berhasil ditambahkan.');
@@ -98,7 +102,11 @@ class StudentController extends Controller
             $student->user->update([
                 'name' => $request->name,
                 'email' => $request->email,
+                'role' => 'student', // Update kolom role di tabel users (jika masih digunakan)
             ]);
+
+            // Pastikan role 'student' tetap ada di tabel model_has_roles
+            $student->user->syncRoles(['student']);
 
             // Regenerate QR Code if needed
             if (!File::exists(public_path('qrcodes/student_'.$student->barcode.'.svg'))) {
@@ -131,6 +139,8 @@ class StudentController extends Controller
             }
 
             if ($student->user) {
+                // Hapus semua role dari user di tabel model_has_roles
+                $student->user->syncRoles([]);
                 $student->user->delete();
             }
             $student->delete();

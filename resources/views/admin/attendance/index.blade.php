@@ -6,30 +6,13 @@
     <title>Kelola Absensi</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('css/sweetalert2.min.css') }}">
+    <script src="{{ asset('js/sweetalert2.min.js') }}"></script>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans">
     @include('layouts.navbar-admin')
 
     <div class="container mx-auto px-4 py-8">
-        @if (session('success'))
-            <div class="mb-6 p-4 bg-green-100 text-green-700 border-l-4 border-green-500 rounded-lg flex items-center">
-                <i class="fas fa-check-circle mr-2"></i>
-                {{ session('success') }}
-            </div>
-        @endif
-        @if (session('error'))
-            <div class="mb-6 p-4 bg-red-100 text-red-700 border-l-4 border-red-500 rounded-lg flex items-center">
-                <i class="fas fa-exclamation-circle mr-2"></i>
-                {{ session('error') }}
-            </div>
-        @endif
-        @if (isset($isHoliday) && $isHoliday)
-            <div class="mb-6 p-4 bg-yellow-100 text-yellow-700 border-l-4 border-yellow-500 rounded-lg flex items-center">
-                <i class="fas fa-info-circle mr-2"></i>
-                {{ $holidayMessage }}
-            </div>
-        @endif
-
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>
                 <h1 class="text-2xl font-bold text-gray-800">Kelola Absensi</h1>
@@ -124,5 +107,39 @@
             </a>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            @if (session('success'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: '{{ session('success') }}',
+                    showConfirmButton: true,
+                    timer: 3000
+                });
+            @endif
+
+            @if (session('error'))
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: '{{ session('error') }}',
+                    showConfirmButton: true,
+                    timer: 3000
+                });
+            @endif
+
+            @if (isset($isHoliday) && $isHoliday)
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Informasi',
+                    text: '{{ $holidayMessage }}',
+                    showConfirmButton: true,
+                    timer: 3000
+                });
+            @endif
+        });
+    </script>
 </body>
 </html>

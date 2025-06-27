@@ -4,21 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detail Kelas - {{ $classroom->full_name }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('css/sweetalert2.min.css') }}">
+    <script src="{{ asset('js/sweetalert2.min.js') }}"></script>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans">
     @include('layouts.navbar-admin')
 
     <div class="container mx-auto px-4 py-8">
         <h1 class="text-2xl font-bold mb-4 text-gray-800">Detail Kelas: {{ $classroom->full_name }}</h1>
-
-        @if (session('success'))
-            <div class="mb-6 p-4 bg-green-100 text-green-700 border-l-4 border-green-500 rounded-lg flex items-center">
-                <i class="fas fa-check-circle mr-2"></i>
-                {{ session('success') }}
-            </div>
-        @endif
 
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
             <h2 class="text-lg font-semibold text-gray-800 mb-4">Informasi Kelas</h2>
@@ -67,7 +62,21 @@
                                             <button type="submit" 
                                                     class="p-2 text-red-600 hover:bg-red-50 rounded-full transition"
                                                     title="Hapus"
-                                                    onclick="return confirm('Yakin ingin menghapus jadwal ini?')">
+                                                    onclick="event.preventDefault(); Swal.fire({
+                                                        title: 'Yakin ingin menghapus?',
+                                                        text: 'Jadwal untuk {{ $schedule->subject->name }} di {{ $classroom->full_name }} akan dihapus!',
+                                                        icon: 'warning',
+                                                        showCancelButton: true,
+                                                        confirmButtonColor: '#dc2626',
+                                                        cancelButtonColor: '#6b7280',
+                                                        confirmButtonText: 'Ya, Hapus!',
+                                                        cancelButtonText: 'Batal',
+                                                        reverseButtons: true
+                                                    }).then((result) => {
+                                                        if (result.isConfirmed) {
+                                                            this.closest('form').submit();
+                                                        }
+                                                    });">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
@@ -94,5 +103,60 @@
             </a>
         </div>
     </div>
+
+    <script src="{{ asset('js/sweetalert2.min.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            @if (session('success'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: '{{ session('success') }}',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#2563eb',
+                    background: '#f9fafb',
+                    customClass: {
+                        popup: 'rounded-xl shadow-lg',
+                        title: 'text-2xl font-bold text-gray-800',
+                        content: 'text-gray-600',
+                        confirmButton: 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition'
+                    },
+                    showClass: {
+                        popup: 'animate__animated animate__fadeInDown'
+                    },
+                    hideClass: {
+                        popup: 'animate__animated animate__fadeOutUp'
+                    },
+                    timer: 4000,
+                    timerProgressBar: true
+                });
+            @endif
+
+            @if (session('error'))
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: '{{ session('error') }}',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#dc2626',
+                    background: '#f9fafb',
+                    customClass: {
+                        popup: 'rounded-xl shadow-lg',
+                        title: 'text-2xl font-bold text-gray-800',
+                        content: 'text-gray-600',
+                        confirmButton: 'px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition'
+                    },
+                    showClass: {
+                        popup: 'animate__animated animate__fadeInDown'
+                    },
+                    hideClass: {
+                        popup: 'animate__animated animate__fadeOutUp'
+                    },
+                    timer: 4000,
+                    timerProgressBar: true
+                });
+            @endif
+        });
+    </script>
 </body>
 </html>

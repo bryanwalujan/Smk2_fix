@@ -4,6 +4,8 @@
     <title>Students List</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('css/sweetalert2.min.css') }}">
+    <script src="{{ asset('js/sweetalert2.min.js') }}"></script>
     <script src="{{ asset('js/html2canvas.min.js') }}"></script>
     <style>
         /* Ganti semua warna dengan format hex */
@@ -114,12 +116,6 @@
             <a href="{{ route('students.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow transition duration-200">Tambah Siswa</a>
         </div>
 
-        @if (session('success'))
-            <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded mb-6">
-                <p>{{ session('success') }}</p>
-            </div>
-        @endif
-
         <div class="bg-white shadow-md rounded-lg overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full">
@@ -153,10 +149,24 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <div class="flex space-x-2">
                                         <a href="{{ route('students.edit', $student->id) }}" class="text-blue-600 hover:text-blue-900">Edit</a>
-                                        <form action="{{ route('students.destroy', $student->id) }}" method="POST" class="inline">
+                                        <form action="{{ route('students.destroy', $student->id) }}" method="POST" class="inline delete-form">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="text-red-600 hover:text-red-900" onclick="return confirm('Yakin ingin menghapus?')">Hapus</button>
+                                            <button type="submit" class="text-red-600 hover:text-red-900" onclick="event.preventDefault(); Swal.fire({
+                                                title: 'Yakin ingin menghapus?',
+                                                text: 'Data siswa {{ $student->name }} akan dihapus secara permanen!',
+                                                icon: 'warning',
+                                                showCancelButton: true,
+                                                confirmButtonColor: '#dc2626',
+                                                cancelButtonColor: '#6b7280',
+                                                confirmButtonText: 'Ya, Hapus!',
+                                                cancelButtonText: 'Batal',
+                                                reverseButtons: true
+                                            }).then((result) => {
+                                                if (result.isConfirmed) {
+                                                    this.closest('form').submit();
+                                                }
+                                            });">Hapus</button>
                                         </form>
                                     </div>
                                 </td>
@@ -175,7 +185,60 @@
         <div class="qr-download-footer">Scan QR Code untuk verifikasi</div>
     </div>
 
+    <script src="{{ asset('js/sweetalert2.min.js') }}"></script>
     <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            @if (session('success'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: '{{ session('success') }}',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#2563eb',
+                    background: '#f9fafb',
+                    customClass: {
+                        popup: 'rounded-xl shadow-lg',
+                        title: 'text-2xl font-bold text-gray-800',
+                        content: 'text-gray-600',
+                        confirmButton: 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition'
+                    },
+                    showClass: {
+                        popup: 'animate__animated animate__fadeInDown'
+                    },
+                    hideClass: {
+                        popup: 'animate__animated animate__fadeOutUp'
+                    },
+                    timer: 4000,
+                    timerProgressBar: true
+                });
+            @endif
+
+            @if (session('error'))
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: '{{ session('error') }}',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#dc2626',
+                    background: '#f9fafb',
+                    customClass: {
+                        popup: 'rounded-xl shadow-lg',
+                        title: 'text-2xl font-bold text-gray-800',
+                        content: 'text-gray-600',
+                        confirmButton: 'px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition'
+                    },
+                    showClass: {
+                        popup: 'animate__animated animate__fadeInDown'
+                    },
+                    hideClass: {
+                        popup: 'animate__animated animate__fadeOutUp'
+                    },
+                    timer: 4000,
+                    timerProgressBar: true
+                });
+            @endif
+        });
+
         async function downloadQRCode(studentId, studentName) {
             // Dapatkan elemen template
             const template = document.getElementById('qr-download-template');
@@ -258,10 +321,26 @@
                 
             } catch (error) {
                 console.error('Error generating QR Code:', error);
-                alert('Gagal menghasilkan QR Code. Silakan coba lagi.');
-                template.style.left = '-9999px';
-                template.style.position = 'absolute';
-                template.style.zIndex = '';
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: 'Gagal menghasilkan QR Code. Silakan coba lagi.',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#dc2626',
+                    background: '#f9fafb',
+                    customClass: {
+                        popup: 'rounded-xl shadow-lg',
+                        title: 'text-2xl font-bold text-gray-800',
+                        content: 'text-gray-600',
+                        confirmButton: 'px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition'
+                    },
+                    showClass: {
+                        popup: 'animate__animated animate__fadeInDown'
+                    },
+                    hideClass: {
+                        popup: 'animate__animated animate__fadeOutUp'
+                    }
+                });
             }
         }
     </script>

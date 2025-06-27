@@ -6,7 +6,9 @@
     <title>Daftar Guru</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('css/sweetalert2.min.css') }}">
     <script src="{{ asset('js/html2canvas.min.js') }}"></script>
+    <script src="{{ asset('js/sweetalert2.min.js') }}"></script>
     <style>
         /* Ganti semua warna dengan format hex */
         body {
@@ -117,9 +119,17 @@
         </div>
 
         @if (session('success'))
-            <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded mb-6">
-                <p>{{ session('success') }}</p>
-            </div>
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: '{{ session('success') }}',
+                        confirmButtonColor: '#10b981',
+                        confirmButtonText: 'OK'
+                    });
+                });
+            </script>
         @endif
         @if (session('error'))
             <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded mb-6">
@@ -167,11 +177,11 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <div class="flex space-x-2">
-                                        <a href="{{ route('teachers.edit', $teacher->id) }}" class="text-blue-600 hover:text-blue-900">Edit</a>
-                                        <form action="{{ route('teachers.destroy', $teacher->id) }}" method="POST" class="inline">
+                                        <a href="{{ route('teachers.edit', $teacher->id) }}" class="text-blue-600 hover:text-blue-900 edit-button" data-id="{{ $teacher->id }}">Edit</a>
+                                        <form action="{{ route('teachers.destroy', $teacher->id) }}" method="POST" class="inline delete-form">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="text-red-600 hover:text-red-900" onclick="return confirm('Yakin ingin menghapus?')">Hapus</button>
+                                            <button type="submit" class="text-red-600 hover:text-red-900">Hapus</button>
                                         </form>
                                     </div>
                                 </td>
@@ -191,6 +201,49 @@
     </div>
 
     <script>
+        // SweetAlert2 untuk konfirmasi hapus
+        document.querySelectorAll('.delete-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                Swal.fire({
+                    title: 'Yakin ingin menghapus?',
+                    text: 'Data guru akan dihapus secara permanen!',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Ya, Hapus!',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        });
+
+        // SweetAlert2 untuk konfirmasi edit
+        document.querySelectorAll('.edit-button').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const editUrl = this.href;
+                Swal.fire({
+                    title: 'Edit Data Guru',
+                    text: 'Apakah Anda yakin ingin mengedit data guru ini?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#2563eb',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Ya, Edit!',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = editUrl;
+                    }
+                });
+            });
+        });
+
         async function downloadQRCode(teacherId, teacherName) {
             // Dapatkan elemen template
             const template = document.getElementById('qr-download-template');
@@ -273,10 +326,11 @@
                 
             } catch (error) {
                 console.error('Error generating QR Code:', error);
-                alert('Gagal menghasilkan QR Code. Silakan coba lagi.');
-                template.style.left = '-9999px';
-                template.style.position = 'absolute';
-                template.style.zIndex = '';
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: 'Gagal menghasilkan QR Code. Silakan coba lagi.',
+                });
             }
         }
     </script>

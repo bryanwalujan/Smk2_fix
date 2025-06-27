@@ -13,6 +13,7 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role;
 
 class TeacherController extends Controller
 {
@@ -58,8 +59,11 @@ class TeacherController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->nip),
-                'role' => 'teacher',
+                'role' => 'teacher', // Kolom role di tabel users (jika masih digunakan)
             ]);
+
+            // Tugaskan role 'teacher' ke tabel model_has_roles menggunakan Spatie
+            $user->assignRole('teacher');
 
             // Generate barcode
             $barcodeId = rand(100000, 999999);
@@ -157,7 +161,11 @@ class TeacherController extends Controller
             $teacher->user->update([
                 'name' => $request->name,
                 'email' => $request->email,
+                'role' => 'teacher', // Update kolom role di tabel users (jika masih digunakan)
             ]);
+
+            // Pastikan role 'teacher' tetap ada di tabel model_has_roles
+            $teacher->user->syncRoles(['teacher']);
 
             // Update relasi mata pelajaran
             $teacher->subjects()->sync($request->subject_ids);
@@ -207,6 +215,8 @@ class TeacherController extends Controller
 
             // Delete user and teacher
             if ($teacher->user) {
+                // Hapus semua role dari user di tabel model_has_roles
+                $teacher->user->syncRoles([]);
                 $teacher->user->delete();
             }
             $teacher->delete();
