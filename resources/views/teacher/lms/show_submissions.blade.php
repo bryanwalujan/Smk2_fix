@@ -6,7 +6,7 @@
     <title>Pengumpulan Tugas</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
+</head> 
 <body class="bg-gray-50">
     @include('layouts.appguru')
     <div class="container mx-auto px-4 py-8 max-w-7xl">
