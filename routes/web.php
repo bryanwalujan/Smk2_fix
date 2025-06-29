@@ -83,7 +83,10 @@ Route::middleware(['auth', 'spatie.role:admin'])->prefix('admin')->group(functio
     Route::post('/permissions/toggle', [AdminController::class, 'togglePermission'])
         ->name('admin.permissions.toggle')
         ->middleware(['auth', 'spatie.role:admin', 'spatie.permission:manage_roles']);
+    Route::get('/admin/permissions', [App\Http\Controllers\Admin\AdminController::class, 'permissions'])->name('admin.permissions');
+        
 });
+
 
 // Authenticated Routes (Teacher and Student)
 Route::middleware(['auth'])->group(function () {
@@ -117,10 +120,12 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/lms/assignment/{assignment}/submission/{submission}/grade', [TeacherLmsController::class, 'gradeSubmission'])->name('teacher.lms.grade_submission');
         Route::get('/lms/change-password', [TeacherLmsController::class, 'showChangePasswordForm'])->name('teacher.lms.show_change_password');
         Route::post('/lms/change-password', [TeacherLmsController::class, 'changePassword'])->name('teacher.lms.change_password');
+        Route::post('/sessions/{classSession}/store-combined', [TeacherLmsController::class, 'storeCombined'])
+    ->name('teacher.lms.store_combined');
     });
 
     // Student LMS Routes
-    Route::prefix('student/lms')->name('student.lms.')->middleware('spatie.role:student')->group(function () {
+     Route::prefix('student/lms')->name('student.lms.')->middleware('role:student')->group(function () {
         Route::get('/', [StudentLmsController::class, 'index'])->name('index');
         Route::get('/sessions/{classSession}', [StudentLmsController::class, 'showSession'])->name('show_session');
         Route::get('/assignments/{assignment}/submit', [StudentLmsController::class, 'createSubmission'])->name('create_submission');

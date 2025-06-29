@@ -49,6 +49,14 @@ class AdminController extends Controller
         return view('admin.dashboard', compact('roles', 'permissions'));
     }
 
+    public function permissions()
+    {
+        $this->authorize('manage_roles');
+        $roles = Role::whereIn('name', ['teacher', 'student'])->get();
+        $permissions = Permission::all();
+        return view('admin.permissions', compact('roles', 'permissions'));
+    }
+
     public function togglePermission(Request $request)
     {
         $request->headers->set('Accept', 'application/json');
@@ -686,7 +694,6 @@ class AdminController extends Controller
 
     public function exportAttendanceExcel(Request $request)
     {
-
         $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->input('end_date', Carbon::now()->toDateString());
         $type = $request->input('type', 'all');
@@ -758,7 +765,6 @@ class AdminController extends Controller
 
     public function exportAttendancePdf(Request $request)
     {
-
         $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->input('end_date', Carbon::now()->toDateString());
         $type = $request->input('type', 'all');

@@ -6,12 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class ClassSession extends Model
 {
-    protected $fillable = ['teacher_id', 'classroom_id', 'subject_id', 'title', 'start_time','day_of_week', 'end_time'];
-
+    protected $table = 'schedules';
+    protected $fillable = ['teacher_id', 'classroom_id', 'subject_id', 'day', 'start_time', 'end_time'];
     protected $casts = [
         'start_time' => 'datetime',
         'end_time' => 'datetime',
-        'day_of_week' => 'string',
+        'day' => 'string',
     ];
 
     public function teacher()
@@ -31,11 +31,11 @@ class ClassSession extends Model
 
     public function materials()
     {
-        return $this->hasMany(Material::class);
+        return $this->hasMany(Material::class, 'schedule_id', 'id');
     }
 
     public function assignments()
     {
-        return $this->hasMany(Assignment::class);
+        return $this->hasMany(Assignment::class, 'schedule_id', 'id');
     }
 }

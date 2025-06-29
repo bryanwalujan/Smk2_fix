@@ -2,20 +2,20 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Schedule extends Model
 {
-    use HasFactory;
+    protected $table = 'schedules'; // Menentukan nama tabel
 
     protected $fillable = [
-        'classroom_id',
         'teacher_id',
+        'classroom_id',
         'subject_id',
         'day',
         'start_time',
         'end_time',
+        'created_by',
     ];
 
     public function classroom()
@@ -23,13 +23,23 @@ class Schedule extends Model
         return $this->belongsTo(Classroom::class);
     }
 
+    public function subject()
+    {
+        return $this->belongsTo(Subject::class);
+    }
+
     public function teacher()
     {
         return $this->belongsTo(Teacher::class);
     }
 
-    public function subject()
+    public function materials()
     {
-        return $this->belongsTo(Subject::class);
+        return $this->hasMany(Material::class, 'class_session_id');
+    }
+
+    public function assignments()
+    {
+        return $this->hasMany(Assignment::class, 'class_session_id');
     }
 }

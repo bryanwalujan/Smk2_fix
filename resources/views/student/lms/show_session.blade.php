@@ -9,13 +9,13 @@
         <div class="p-6 border-b border-gray-200">
             <div class="flex justify-between items-start">
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-800">Sesi: {{ $classSession->title }}</h2>
+                    <h2 class="text-2xl font-bold text-gray-800">Sesi: {{ $classSession->title ?? 'Tidak ada judul' }}</h2>
                     <div class="mt-2 space-y-1">
                         <p class="text-gray-600">
-                            <span class="font-medium">Kelas:</span> {{ $classSession->classroom->full_name }}
+                            <span class="font-medium">Kelas:</span> {{ $classSession->classroom->full_name ?? 'Tidak ada kelas' }}
                         </p>
                         <p class="text-gray-600">
-                            <span class="font-medium">Mata Pelajaran:</span> {{ $classSession->subject_name }}
+                            <span class="font-medium">Mata Pelajaran:</span> {{ $classSession->subject->name ?? 'Tidak ada mata pelajaran' }}
                         </p>
                         <p class="text-gray-600">
                             <span class="font-medium">Waktu:</span> 

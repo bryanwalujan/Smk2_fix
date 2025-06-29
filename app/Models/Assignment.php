@@ -6,15 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Assignment extends Model
 {
-    protected $fillable = ['class_session_id', 'title', 'description', 'deadline'];
-
-    protected $casts = [
-        'deadline' => 'datetime',
-    ];
+    protected $fillable = ['schedule_id', 'title', 'description', 'deadline'];
 
     public function classSession()
     {
-        return $this->belongsTo(ClassSession::class);
+        return $this->belongsTo(ClassSession::class, 'schedule_id', 'id');
     }
 
     public function submissions()

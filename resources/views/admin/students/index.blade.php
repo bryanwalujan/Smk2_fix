@@ -49,6 +49,44 @@
             color: #047857 !important;
         }
 
+        /* Style untuk search bar */
+        .search-container {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+        .search-input {
+            width: 100%;
+            max-width: 500px;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+            background-color: #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease-in-out;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+            transform: scale(1.01);
+        }
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6b7280;
+        }
+        .no-results {
+            display: none;
+            text-align: center;
+            padding: 1rem;
+            color: #6b7280;
+            font-style: italic;
+        }
+
         /* Style custom lainnya tetap sama */
         .qr-container {
             position: relative;
@@ -116,9 +154,15 @@
             <a href="{{ route('students.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow transition duration-200">Tambah Siswa</a>
         </div>
 
+        <!-- Search Bar -->
+        <div class="search-container">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="searchInput" class="search-input" placeholder="Cari berdasarkan NIS, Nama, atau Kelas...">
+        </div>
+
         <div class="bg-white shadow-md rounded-lg overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="w-full">
+                <table class="w-full" id="studentTable">
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NIS</th>
@@ -128,7 +172,7 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tbody class="bg-white divide-y divide-gray-200" id="studentTableBody">
                         @foreach ($students as $student)
                             <tr class="hover:bg-gray-50">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $student->nis }}</td>
@@ -174,6 +218,7 @@
                         @endforeach
                     </tbody>
                 </table>
+                <div id="noResults" class="no-results">Tidak ada data yang cocok dengan pencarian Anda.</div>
             </div>
         </div>
     </div>
@@ -237,6 +282,33 @@
                     timerProgressBar: true
                 });
             @endif
+
+            // Fungsi Live Search
+            document.getElementById('searchInput').addEventListener('input', function(e) {
+                const searchValue = e.target.value.toLowerCase();
+                const rows = document.querySelectorAll('#studentTableBody tr');
+                const noResults = document.getElementById('noResults');
+                let hasVisibleRows = false;
+
+                rows.forEach(row => {
+                    const nis = row.cells[0].textContent.toLowerCase();
+                    const name = row.cells[1].textContent.toLowerCase();
+                    const classroom = row.cells[2].textContent.toLowerCase();
+
+                    if (
+                        nis.includes(searchValue) ||
+                        name.includes(searchValue) ||
+                        classroom.includes(searchValue)
+                    ) {
+                        row.style.display = '';
+                        hasVisibleRows = true;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                noResults.style.display = hasVisibleRows ? 'none' : 'block';
+            });
         });
 
         async function downloadQRCode(studentId, studentName) {

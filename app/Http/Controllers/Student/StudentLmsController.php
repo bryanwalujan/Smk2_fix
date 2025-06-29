@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Student;
 use App\Http\Controllers\Controller;
 use App\Models\ClassSession;
 use App\Models\Assignment;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Models\Submission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -22,22 +24,36 @@ class StudentLmsController extends Controller
         return view('student.lms.index', compact('classSessions'));
     }
 
-    public function showSession(ClassSession $classSession)
-    {
-        $this->authorizeStudent($classSession);
-        $classSession->load([
-            'materials',
-            'assignments.submissions' => function ($query) {
-                $query->where('student_id', Auth::user()->student->id);
-            }
-        ]);
-        $classSession = $classSession->fresh(['materials', 'assignments.submissions']); // Pastikan data terbaru
-        return view('student.lms.show_session', compact('classSession'));
-    }
+   public function showSession(ClassSession $classSession)
+{
+    $this->authorizeStudent($classSession);
+    $classSession->load([
+        'materials',
+        'assignments' => function ($query) {
+            $query->whereNotNull('schedule_id')->whereExists(function ($subQuery) {
+                $subQuery->select(DB::raw(1))
+                         ->from('schedules')
+                         ->whereColumn('schedules.id', 'assignments.schedule_id');
+            });
+        },
+        'assignments.submissions' => function ($query) {
+            $query->where('student_id', Auth::user()->student->id);
+        }
+    ]);
+    $classSession = $classSession->fresh(['materials', 'assignments.submissions']);
+    
+    Log::info('Assignments for ClassSession ' . $classSession->id . ': ', $classSession->assignments->toArray());
+    
+    return view('student.lms.show_session', compact('classSession'));
+}
 
     public function createSubmission(Assignment $assignment)
     {
-        $this->authorizeStudent($assignment->classSession); // Perbaikan: akses instance ClassSession
+        if (is_null($assignment->classSession)) {
+            abort(404, 'Sesi kelas tidak ditemukan untuk tugas ini.');
+        }
+
+        $this->authorizeStudent($assignment->classSession);
         $existingSubmission = Submission::where('assignment_id', $assignment->id)
             ->where('student_id', Auth::user()->student->id)
             ->first();
@@ -46,7 +62,11 @@ class StudentLmsController extends Controller
 
     public function storeSubmission(Request $request, Assignment $assignment)
     {
-        $this->authorizeStudent($assignment->classSession); // Perbaikan: akses instance ClassSession
+        if (is_null($assignment->classSession)) {
+            abort(404, 'Sesi kelas tidak ditemukan untuk tugas ini.');
+        }
+
+        $this->authorizeStudent($assignment->classSession);
         $request->validate([
             'file' => 'nullable|file|mimes:pdf,doc,docx|max:2048',
             'notes' => 'nullable|string|max:500',
