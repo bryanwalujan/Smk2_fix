@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Admin\ClassroomController;
 use App\Http\Controllers\Admin\ScheduleController;
 use App\Http\Controllers\Admin\AttendanceController;
+use App\Http\Controllers\PublicAttendanceController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Teacher\TeacherLmsController;
@@ -84,7 +85,7 @@ Route::middleware(['auth', 'spatie.role:admin'])->prefix('admin')->group(functio
         ->name('admin.permissions.toggle')
         ->middleware(['auth', 'spatie.role:admin', 'spatie.permission:manage_roles']);
     Route::get('/admin/permissions', [App\Http\Controllers\Admin\AdminController::class, 'permissions'])->name('admin.permissions');
-        
+
 });
 
 
@@ -121,14 +122,22 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/lms/change-password', [TeacherLmsController::class, 'showChangePasswordForm'])->name('teacher.lms.show_change_password');
         Route::post('/lms/change-password', [TeacherLmsController::class, 'changePassword'])->name('teacher.lms.change_password');
         Route::post('/sessions/{classSession}/store-combined', [TeacherLmsController::class, 'storeCombined'])
-    ->name('teacher.lms.store_combined');
+            ->name('teacher.lms.store_combined');
+        Route::get('/teacher/lms/sessions/{classSession}/attendance', [TeacherLmsController::class, 'showAttendance'])
+            ->name('teacher.lms.show_attendance');
+        Route::patch('/teacher/lms/sessions/{classSession}/attendance/{student}', [TeacherLmsController::class, 'updateAttendance'])
+            ->name('teacher.lms.update_attendance');
     });
 
     // Student LMS Routes
-     Route::prefix('student/lms')->name('student.lms.')->middleware('role:student')->group(function () {
+    Route::prefix('student/lms')->name('student.lms.')->middleware('role:student')->group(function () {
         Route::get('/', [StudentLmsController::class, 'index'])->name('index');
         Route::get('/sessions/{classSession}', [StudentLmsController::class, 'showSession'])->name('show_session');
         Route::get('/assignments/{assignment}/submit', [StudentLmsController::class, 'createSubmission'])->name('create_submission');
         Route::post('/assignments/{assignment}/submit', [StudentLmsController::class, 'storeSubmission'])->name('store_submission');
     });
+
+
 });
+Route::get('/scan', [PublicAttendanceController::class, 'scan'])->name('public.attendance.scan');
+Route::post('/scan', [PublicAttendanceController::class, 'processScan'])->name('public.attendance.scan.post');
