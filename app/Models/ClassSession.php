@@ -6,12 +6,24 @@ use Illuminate\Database\Eloquent\Model;
 
 class ClassSession extends Model
 {
-    protected $table = 'schedules';
-    protected $fillable = ['teacher_id', 'classroom_id', 'subject_id', 'day', 'start_time', 'end_time'];
+    protected $table = 'class_sessions';
+
+    protected $fillable = [
+        'teacher_id',
+        'classroom_id',
+        'subject_id',
+        'day_of_week',
+        'date',
+        'start_time',
+        'end_time',
+        'created_by',
+    ];
+
     protected $casts = [
-        'start_time' => 'datetime',
-        'end_time' => 'datetime',
-        'day' => 'string',
+        'start_time' => 'datetime:H:i:s',
+        'end_time' => 'datetime:H:i:s',
+        'day_of_week' => 'string',
+        'date' => 'date',
     ];
 
     public function teacher()
@@ -31,11 +43,25 @@ class ClassSession extends Model
 
     public function materials()
     {
-        return $this->hasMany(Material::class, 'schedule_id', 'id');
+        return $this->hasMany(Material::class, 'class_session_id', 'id');
     }
 
     public function assignments()
     {
-        return $this->hasMany(Assignment::class, 'schedule_id', 'id');
+        return $this->hasMany(Assignment::class, 'class_session_id', 'id');
+    }
+
+    public function getMeetingNumberAttribute()
+    {
+        $previousSessions = self::where('teacher_id', $this->teacher_id)
+            ->where('classroom_id', $this->classroom_id)
+            ->where('subject_id', $this->subject_id)
+            ->where('day_of_week', $this->day_of_week)
+            ->where('start_time', $this->start_time)
+            ->where('end_time', $this->end_time)
+            ->where('date', '<=', $this->date)
+            ->orderBy('date')
+            ->get();
+        return $previousSessions->pluck('id')->search($this->id) + 1;
     }
 }

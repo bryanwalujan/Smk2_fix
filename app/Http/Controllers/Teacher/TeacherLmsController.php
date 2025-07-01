@@ -15,35 +15,40 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Carbon;
+use Carbon\Carbon;
 
 class TeacherLmsController extends Controller
 {
     public function index()
     {
         $teacher = Auth::user()->teacher;
-        $today = Carbon::today()->translatedFormat('l');
+        $today = Carbon::today()->toDateString(); // Format: '2025-07-01'
+
+        // Jadwal hari ini
         $classSessions = ClassSession::where('teacher_id', $teacher->id)
-            ->where('day', $today)
+            ->where('date', $today)
             ->with(['classroom', 'subject'])
             ->get();
+
+        // Semua jadwal
         $allClassSessions = ClassSession::where('teacher_id', $teacher->id)
             ->with(['classroom', 'subject'])
-            ->orderByRaw("FIELD(day, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu')")
+            ->orderBy('date')
             ->orderBy('start_time')
-            ->get()
-            ->map(function ($session) use ($today) {
-                $session->is_today = $session->day === $today;
-                return $session;
-            });
+            ->get();
+
+        // Hitung jumlah mata pelajaran unik
         $uniqueSubjectsCount = ClassSession::where('teacher_id', $teacher->id)
             ->distinct('subject_id')
             ->count('subject_id');
+
+        // Ambil daftar mata pelajaran per kelas
         $subjects = ClassSession::where('teacher_id', $teacher->id)
             ->with(['subject', 'classroom'])
             ->get()
             ->pluck('subject.name', 'classroom_id')
             ->toArray();
+
         return view('teacher.lms.index', compact(
             'subjects',
             'classSessions',
@@ -100,7 +105,7 @@ class TeacherLmsController extends Controller
         }
 
         $materialData = $request->material;
-        $materialData['schedule_id'] = $classSession->id;
+        $materialData['class_session_id'] = $classSession->id;
         if ($request->hasFile('material.file')) {
             $materialData['file_path'] = $request->file('material.file')->store('materials', 'public');
         }
@@ -108,7 +113,7 @@ class TeacherLmsController extends Controller
 
         if ($request->has('assignments')) {
             foreach ($request->assignments as $index => $assignmentData) {
-                $assignmentData['schedule_id'] = $classSession->id;
+                $assignmentData['class_session_id'] = $classSession->id;
                 $assignmentData['material_id'] = $material->id;
                 if ($request->hasFile("assignments.$index.file")) {
                     $assignmentData['file_path'] = $request->file("assignments.$index.file")->store('assignments', 'public');
@@ -176,7 +181,7 @@ class TeacherLmsController extends Controller
             'deadline' => 'required|date|after:now',
         ]);
         Assignment::create([
-            'schedule_id' => $classSession->id,
+            'class_session_id' => $classSession->id,
             'title' => $request->title,
             'description' => $request->description,
             'deadline' => $request->deadline,
@@ -264,30 +269,22 @@ class TeacherLmsController extends Controller
         return redirect()->route('teacher.lms.index')->with('success', 'Password berhasil diganti.');
     }
 
-    /**
-     * Menampilkan daftar absensi siswa untuk sesi kelas tertentu.
-     *
-     * @param ClassSession $classSession
-     * @return \Illuminate\View\View
-     */
     public function showAttendance(ClassSession $classSession)
     {
         $this->authorizeTeacher($classSession);
 
-        // Konversi tanggal ke format Y-m-d untuk memastikan kecocokan
         $date = Carbon::parse($classSession->date)->format('Y-m-d');
 
         $classroom = Classroom::findOrFail($classSession->classroom_id);
         $students = Student::where('classroom_id', $classroom->id)
             ->with([
-                'attendances' => function ($query) use ($date) {
-                    $query->whereDate('tanggal', $date);
+                'attendances' => function ($query) use ($classSession) {
+                    $query->where('class_session_id', $classSession->id);
                 }
             ])
             ->get();
 
-        // Logging untuk debugging
-        \Log::info('Show Attendance', [
+        Log::info('Show Attendance', [
             'class_session_id' => $classSession->id,
             'classroom_id' => $classroom->id,
             'date' => $date,
@@ -298,14 +295,6 @@ class TeacherLmsController extends Controller
         return view('teacher.lms.attendance', compact('classSession', 'classroom', 'students'));
     }
 
-    /**
-     * Memperbarui status absensi siswa.
-     *
-     * @param Request $request
-     * @param ClassSession $classSession
-     * @param Student $student
-     * @return \Illuminate\Http\RedirectResponse
-     */
     public function updateAttendance(Request $request, ClassSession $classSession, Student $student)
     {
         $this->authorizeTeacher($classSession);
@@ -315,39 +304,27 @@ class TeacherLmsController extends Controller
         ]);
 
         try {
-            // Pastikan siswa berada di kelas yang sesuai
             if ($student->classroom_id !== $classSession->classroom_id) {
                 return redirect()->route('teacher.lms.show_attendance', $classSession)
                     ->with('error', 'Siswa tidak terdaftar di kelas ini.');
             }
 
-            // Konversi tanggal ke format Y-m-d
-            $date = \Carbon\Carbon::parse($classSession->date)->format('Y-m-d');
-
-            // Logging untuk debugging
-            \Log::info('Update Attendance Attempt', [
-                'class_session_id' => $classSession->id,
-                'student_id' => $student->id,
-                'classroom_id' => $classSession->classroom_id,
-                'date' => $date,
-                'status' => $request->status,
-            ]);
+            $date = Carbon::parse($classSession->date)->format('Y-m-d');
 
             $attendance = StudentAttendance::where('student_id', $student->id)
-                ->whereDate('tanggal', $date)
+                ->where('class_session_id', $classSession->id)
                 ->first();
 
             if ($attendance) {
-                // Update status absensi
                 $attendance->update([
                     'status' => $request->status,
                     'metode_absen' => 'manual',
                     'updated_at' => now(),
                 ]);
             } else {
-                // Buat absensi baru jika belum ada
                 StudentAttendance::create([
                     'student_id' => $student->id,
+                    'class_session_id' => $classSession->id,
                     'tanggal' => $date,
                     'waktu_masuk' => now()->format('H:i:s'),
                     'status' => $request->status,
@@ -358,11 +335,10 @@ class TeacherLmsController extends Controller
             return redirect()->route('teacher.lms.show_attendance', $classSession)
                 ->with('success', 'Status absensi untuk ' . $student->name . ' berhasil diperbarui.');
         } catch (\Exception $e) {
-            \Log::error('Error updating attendance', [
+            Log::error('Error updating attendance', [
                 'message' => $e->getMessage(),
                 'class_session_id' => $classSession->id,
                 'student_id' => $student->id,
-                'date' => $classSession->date,
                 'status' => $request->status,
                 'trace' => $e->getTraceAsString(),
             ]);

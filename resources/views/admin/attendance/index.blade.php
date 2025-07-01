@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -90,7 +91,7 @@
             background-color: #ffffff;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             transition: all 0.2s ease-in-out;
-            height: 2.5rem; /* Menyesuaikan tinggi agar konsisten */
+            height: 2.5rem;
         }
         .search-input:focus {
             outline: none;
@@ -104,7 +105,7 @@
             top: 50%;
             transform: translateY(-50%);
             color: #6b7280;
-            font-size: 1rem; /* Menyesuaikan ukuran ikon */
+            font-size: 1rem;
         }
         .no-results {
             display: none;
@@ -140,9 +141,9 @@
         </div>
 
         <div class="search-container">
-                <i class="fas fa-search search-icon"></i>
-                <input type="text" id="searchInput" class="search-input" placeholder="Cari berdasarkan Nama, Tipe, Tanggal, Waktu, Status, atau Metode...">
-            </div>
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="searchInput" class="search-input" placeholder="Cari berdasarkan Nama, Tipe, Tanggal, Waktu Masuk, Status, atau Metode...">
+        </div>
 
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
             <form method="GET" action="{{ route('attendance.index') }}" class="flex flex-col md:flex-row gap-4 mb-6">
@@ -167,9 +168,6 @@
                 </div>
             </form>
 
-            <!-- Search Bar -->
-            
-
             <div class="overflow-x-auto">
                 <table class="w-full" id="attendanceTable">
                     <thead class="bg-gray-50">
@@ -178,10 +176,8 @@
                             <th class="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipe</th>
                             <th class="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
                             <th class="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu Masuk</th>
-                            <th class="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu Pulang</th>
                             <th class="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th class="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metode</th>
-                            <th class="py-3 px-6 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200" id="attendanceTableBody">
@@ -191,20 +187,15 @@
                                 <td class="py-4 px-6 text-gray-600">{{ $attendance->user_type === 'student' ? 'Siswa' : 'Guru' }}</td>
                                 <td class="py-4 px-6 text-gray-600">{{ Carbon\Carbon::parse($attendance->tanggal)->format('d/m/Y') }}</td>
                                 <td class="py-4 px-6 text-gray-600">{{ $attendance->waktu_masuk }}</td>
-                                <td class="py-4 px-6 text-gray-600">{{ $attendance->waktu_pulang ?? '-' }}</td>
                                 <td class="py-4 px-6 text-gray-600">{{ ucfirst($attendance->status) }}</td>
                                 <td class="py-4 px-6 text-gray-600">{{ ucfirst($attendance->metode_absen) }}</td>
                                 <td class="py-4 px-6 text-right whitespace-nowrap">
-                                    <a href="{{ route('attendance.edit', ['id' => $attendance->id, 'type' => $attendance->user_type]) }}"
-                                       class="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition"
-                                       title="Edit">
-                                        <i class="fas fa-pencil-alt"></i>
-                                    </a>
+                                    
                                 </td>
                             </tr>
                         @empty
                             <tr id="emptyRow">
-                                <td colspan="8" class="py-4 px-6 text-center text-gray-500">
+                                <td colspan="7" class="py-4 px-6 text-center text-gray-500">
                                     Tidak ada data absensi tersedia.
                                 </td>
                             </tr>
@@ -320,16 +311,14 @@
                     const type = row.cells[1].textContent.toLowerCase();
                     const date = row.cells[2].textContent.toLowerCase();
                     const checkIn = row.cells[3].textContent.toLowerCase();
-                    const checkOut = row.cells[4].textContent.toLowerCase();
-                    const status = row.cells[5].textContent.toLowerCase();
-                    const method = row.cells[6].textContent.toLowerCase();
+                    const status = row.cells[4].textContent.toLowerCase();
+                    const method = row.cells[5].textContent.toLowerCase();
 
                     if (
                         name.includes(searchValue) ||
                         type.includes(searchValue) ||
                         date.includes(searchValue) ||
                         checkIn.includes(searchValue) ||
-                        checkOut.includes(searchValue) ||
                         status.includes(searchValue) ||
                         method.includes(searchValue)
                     ) {

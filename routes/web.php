@@ -37,11 +37,14 @@ Route::middleware(['auth', 'spatie.role:admin'])->prefix('admin')->group(functio
 
     // Schedule Routes
     Route::get('/schedules', [ScheduleController::class, 'index'])->name('admin.schedules.index');
-    Route::get('classrooms/{classroom}/schedules/create', [ScheduleController::class, 'create'])->name('schedules.create');
-    Route::post('classrooms/{classroom}/schedules', [ScheduleController::class, 'store'])->name('schedules.store');
-    Route::get('classrooms/{classroom}/schedules/{schedule}/edit', [ScheduleController::class, 'edit'])->name('schedules.edit');
-    Route::put('classrooms/{classroom}/schedules/{schedule}', [ScheduleController::class, 'update'])->name('schedules.update');
-    Route::delete('classrooms/{classroom}/schedules/{schedule}', [ScheduleController::class, 'destroy'])->name('schedules.destroy');
+    Route::get('classrooms/{classroom}/schedules/create', [ScheduleController::class, 'create'])->name('admin.schedules.create');
+    Route::post('classrooms/{classroom}/schedules', [ScheduleController::class, 'store'])->name('admin.schedules.store');
+    Route::get('classrooms/{classroom}/schedules/{schedule}/edit', [ScheduleController::class, 'edit'])->name('admin.schedules.edit');
+    Route::put('classrooms/{classroom}/schedules/{schedule}', [ScheduleController::class, 'update'])->name('admin.schedules.update');
+    Route::delete('classrooms/{classroom}/schedules/{schedule}', [ScheduleController::class, 'destroy'])->name('admin.schedules.destroy');
+    Route::get('/schedules/{schedule}/sessions', [ScheduleController::class, 'showSessions'])->name('admin.schedules.sessions');
+    Route::patch('/schedules/{schedule}/first-session', [ScheduleController::class, 'updateFirstSession'])->name('admin.schedules.update_first_session');
+    Route::delete('/schedules/{schedule}/sessions/{session}', [ScheduleController::class, 'deleteSession'])->name('admin.schedules.delete_session');
 
     // Attendance Routes
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
@@ -84,10 +87,8 @@ Route::middleware(['auth', 'spatie.role:admin'])->prefix('admin')->group(functio
     Route::post('/permissions/toggle', [AdminController::class, 'togglePermission'])
         ->name('admin.permissions.toggle')
         ->middleware(['auth', 'spatie.role:admin', 'spatie.permission:manage_roles']);
-    Route::get('/admin/permissions', [App\Http\Controllers\Admin\AdminController::class, 'permissions'])->name('admin.permissions');
-
+    Route::get('/permissions', [AdminController::class, 'permissions'])->name('admin.permissions');
 });
-
 
 // Authenticated Routes (Teacher and Student)
 Route::middleware(['auth'])->group(function () {
@@ -123,9 +124,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/lms/change-password', [TeacherLmsController::class, 'changePassword'])->name('teacher.lms.change_password');
         Route::post('/sessions/{classSession}/store-combined', [TeacherLmsController::class, 'storeCombined'])
             ->name('teacher.lms.store_combined');
-        Route::get('/teacher/lms/sessions/{classSession}/attendance', [TeacherLmsController::class, 'showAttendance'])
+        Route::get('/lms/sessions/{classSession}/attendance', [TeacherLmsController::class, 'showAttendance'])
             ->name('teacher.lms.show_attendance');
-        Route::patch('/teacher/lms/sessions/{classSession}/attendance/{student}', [TeacherLmsController::class, 'updateAttendance'])
+        Route::patch('/lms/sessions/{classSession}/attendance/{student}', [TeacherLmsController::class, 'updateAttendance'])
             ->name('teacher.lms.update_attendance');
     });
 
@@ -136,8 +137,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/assignments/{assignment}/submit', [StudentLmsController::class, 'createSubmission'])->name('create_submission');
         Route::post('/assignments/{assignment}/submit', [StudentLmsController::class, 'storeSubmission'])->name('store_submission');
     });
-
-
 });
+
 Route::get('/scan', [PublicAttendanceController::class, 'scan'])->name('public.attendance.scan');
 Route::post('/scan', [PublicAttendanceController::class, 'processScan'])->name('public.attendance.scan.post');

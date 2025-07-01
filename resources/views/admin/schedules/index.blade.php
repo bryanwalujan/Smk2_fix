@@ -7,7 +7,6 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Ganti semua warna dengan format hex */
         body {
             background-color: #f3f4f6 !important;
         }
@@ -41,8 +40,6 @@
         .border-gray-200 {
             border-color: #e5e7eb !important;
         }
-
-        /* Style untuk search bar */
         .search-container {
             margin-bottom: 1.5rem;
             position: relative;
@@ -115,6 +112,7 @@
                             <th class="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guru</th>
                             <th class="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hari</th>
                             <th class="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu</th>
+                            <th class="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200" id="scheduleTableBody">
@@ -127,10 +125,32 @@
                                 <td class="py-4 px-6 text-gray-600">{{ $schedule->teacher->name }}</td>
                                 <td class="py-4 px-6 text-gray-600">{{ $schedule->day }}</td>
                                 <td class="py-4 px-6 text-gray-600">{{ $schedule->start_time }} - {{ $schedule->end_time }}</td>
+                                <td class="py-4 px-6 whitespace-nowrap text-sm font-medium">
+                                    <a href="{{ route('admin.schedules.sessions', $schedule) }}"
+                                       class="text-blue-600 hover:text-blue-700 mr-3"
+                                       title="Lihat Pertemuan">
+                                        <i class="fas fa-calendar-check"></i>
+                                    </a>
+                                    <a href="{{ route('admin.schedules.edit', [$schedule->classroom, $schedule]) }}"
+                                       class="text-blue-600 hover:text-blue-700 mr-3"
+                                       title="Edit Jadwal">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form action="{{ route('admin.schedules.destroy', [$schedule->classroom, $schedule]) }}"
+                                          method="POST" class="inline-block"
+                                          onsubmit="return confirm('Apakah Anda yakin ingin menghapus jadwal ini? Semua pertemuan terkait juga akan dihapus.')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-red-600 hover:text-red-700"
+                                                title="Hapus Jadwal">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
                             </tr>
                         @empty
                             <tr id="emptyRow">
-                                <td colspan="5" class="py-4 px-6 text-center text-gray-500">
+                                <td colspan="6" class="py-4 px-6 text-center text-gray-500">
                                     Tidak ada data jadwal tersedia.
                                 </td>
                             </tr>
@@ -203,7 +223,6 @@
                 const emptyRow = document.getElementById('emptyRow');
                 let hasVisibleRows = false;
 
-                // Sembunyikan pesan "Tidak ada data jadwal tersedia" jika ada input pencarian
                 if (emptyRow) {
                     emptyRow.style.display = searchValue ? 'none' : '';
                 }
@@ -216,7 +235,7 @@
                     const time = row.cells[4].textContent.toLowerCase();
 
                     if (
-                        classroom.includes(search pct2
+                        classroom.includes(searchValue) ||
                         subject.includes(searchValue) ||
                         teacher.includes(searchValue) ||
                         day.includes(searchValue) ||

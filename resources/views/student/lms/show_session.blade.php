@@ -1,3 +1,4 @@
+
 @extends('layouts.appstudent')
 
 @section('title', 'Detail Sesi Kelas')
@@ -76,11 +77,15 @@
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deskripsi</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tenggat Waktu</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nilai</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             @foreach ($classSession->assignments as $assignment)
+                            @php
+                                $submission = $assignment->submissions->first();
+                            @endphp
                             <tr class="hover:bg-gray-50">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                     {{ $assignment->title }}
@@ -92,7 +97,7 @@
                                     {{ \Carbon\Carbon::parse($assignment->deadline)->translatedFormat('l, d F Y H:i') }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                    @if ($assignment->submissions->where('student_id', auth()->user()->student->id)->isNotEmpty())
+                                    @if ($submission)
                                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                             Sudah Dikumpulkan
                                         </span>
@@ -106,11 +111,23 @@
                                         </span>
                                     @endif
                                 </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    @if ($submission && !is_null($submission->score))
+                                        {{ $submission->score }}
+                                    @else
+                                        Belum Dinilai
+                                    @endif
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    @if ($assignment->submissions->where('student_id', auth()->user()->student->id)->isEmpty() && $assignment->deadline >= now())
+                                    @if (!$submission && $assignment->deadline >= now())
                                         <a href="{{ route('student.lms.create_submission', $assignment) }}" 
                                            class="text-indigo-600 hover:text-indigo-900">
                                             Kumpulkan
+                                        </a>
+                                    @elseif ($submission && $submission->file_path)
+                                        <a href="{{ Storage::url($submission->file_path) }}" target="_blank"
+                                           class="text-indigo-600 hover:text-indigo-900">
+                                            Lihat
                                         </a>
                                     @else
                                         <span class="text-gray-400">-</span>

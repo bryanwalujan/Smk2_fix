@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Schedule extends Model
 {
-    protected $table = 'schedules'; // Menentukan nama tabel
+    protected $table = 'schedules';
 
     protected $fillable = [
         'teacher_id',
@@ -15,7 +15,6 @@ class Schedule extends Model
         'day',
         'start_time',
         'end_time',
-        'created_by',
     ];
 
     public function classroom()
@@ -33,13 +32,13 @@ class Schedule extends Model
         return $this->belongsTo(Teacher::class);
     }
 
-    public function materials()
+    public function classSessions()
     {
-        return $this->hasMany(Material::class, 'class_session_id');
-    }
-
-    public function assignments()
-    {
-        return $this->hasMany(Assignment::class, 'class_session_id');
+        return $this->hasMany(ClassSession::class, 'teacher_id', 'teacher_id')
+            ->where('class_sessions.classroom_id', $this->classroom_id)
+            ->where('class_sessions.subject_id', $this->subject_id)
+            ->where('class_sessions.day_of_week', $this->day)
+            ->where('class_sessions.start_time', $this->start_time)
+            ->where('class_sessions.end_time', $this->end_time);
     }
 }
