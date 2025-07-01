@@ -1,5 +1,4 @@
 <?php
-
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\TeacherController;
@@ -131,13 +130,27 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Student LMS Routes
-    Route::prefix('student/lms')->name('student.lms.')->middleware('role:student')->group(function () {
-        Route::get('/', [StudentLmsController::class, 'index'])->name('index');
-        Route::get('/sessions/{classSession}', [StudentLmsController::class, 'showSession'])->name('show_session');
-        Route::get('/assignments/{assignment}/submit', [StudentLmsController::class, 'createSubmission'])->name('create_submission');
-        Route::post('/assignments/{assignment}/submit', [StudentLmsController::class, 'storeSubmission'])->name('store_submission');
+    Route::middleware(['auth', 'role:student'])->prefix('student')->group(function () {
+        Route::get('/dashboard', function () {
+            return view('student.dashboard');
+        })->name('student.dashboard');
+
+        Route::get('/scan', function () {
+            return view('scan.scan');
+        })->name('student.scan');
+
+        Route::prefix('lms')->name('lms.')->group(function () {
+            Route::get('/', [StudentLmsController::class, 'index'])->name('index');
+            Route::get('/sessions/{classSession}', [StudentLmsController::class, 'showSession'])->name('show_session');
+            Route::get('/assignments/{assignment}/submit', [StudentLmsController::class, 'createSubmission'])->name('create_submission');
+            Route::post('/assignments/{assignment}/submit', [StudentLmsController::class, 'storeSubmission'])->name('store_submission');
+            Route::get('/subjects/{subject}/sessions', [StudentLmsController::class, 'subjectSessions'])->name('subject_sessions');
+        });
     });
 });
 
 Route::get('/scan', [PublicAttendanceController::class, 'scan'])->name('public.attendance.scan');
 Route::post('/scan', [PublicAttendanceController::class, 'processScan'])->name('public.attendance.scan.post');
+Route::get('/student/scan', function () {
+    return view('scan.scan');
+})->name('student.scan')->middleware('auth');

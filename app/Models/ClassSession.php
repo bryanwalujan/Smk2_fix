@@ -2,13 +2,17 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ClassSession extends Model
 {
+    use HasFactory;
+
     protected $table = 'class_sessions';
 
     protected $fillable = [
+        'schedule_id',
         'teacher_id',
         'classroom_id',
         'subject_id',
@@ -26,6 +30,11 @@ class ClassSession extends Model
         'date' => 'date',
     ];
 
+    public function schedule()
+    {
+        return $this->belongsTo(Schedule::class);
+    }
+
     public function teacher()
     {
         return $this->belongsTo(Teacher::class);
@@ -41,24 +50,9 @@ class ClassSession extends Model
         return $this->belongsTo(Subject::class);
     }
 
-    public function materials()
-    {
-        return $this->hasMany(Material::class, 'class_session_id', 'id');
-    }
-
-    public function assignments()
-    {
-        return $this->hasMany(Assignment::class, 'class_session_id', 'id');
-    }
-
     public function getMeetingNumberAttribute()
     {
-        $previousSessions = self::where('teacher_id', $this->teacher_id)
-            ->where('classroom_id', $this->classroom_id)
-            ->where('subject_id', $this->subject_id)
-            ->where('day_of_week', $this->day_of_week)
-            ->where('start_time', $this->start_time)
-            ->where('end_time', $this->end_time)
+        $previousSessions = self::where('schedule_id', $this->schedule_id)
             ->where('date', '<=', $this->date)
             ->orderBy('date')
             ->get();

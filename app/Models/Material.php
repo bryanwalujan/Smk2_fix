@@ -12,4 +12,9 @@ class Material extends Model
     {
         return $this->belongsTo(ClassSession::class);
     }
+
+    public function schedule()
+    {
+        return $this->belongsTo(Schedule::class);
+    }
 }

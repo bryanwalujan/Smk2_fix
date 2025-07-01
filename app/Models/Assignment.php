@@ -2,15 +2,20 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Assignment extends Model
 {
+    use HasFactory;
+
     protected $fillable = ['schedule_id', 'title', 'description', 'deadline'];
 
-    public function classSession()
+    protected $dates = ['deadline'];
+
+    public function schedule()
     {
-        return $this->belongsTo(ClassSession::class, 'schedule_id', 'id');
+        return $this->belongsTo(Schedule::class);
     }
 
     public function submissions()
