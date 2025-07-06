@@ -30,21 +30,35 @@ class StudentController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'nis' => 'required|unique:students',
-            'name' => 'required',
+            'nis' => 'required|unique:students,nis',
+            'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'classroom_id' => 'required|exists:classrooms,id',
+        ], [
+            'nis.required' => 'NIS wajib diisi.',
+            'nis.unique' => 'NIS sudah digunakan oleh siswa lain.',
+            'name.required' => 'Nama wajib diisi.',
+            'email.required' => 'Email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'email.unique' => 'Email sudah terdaftar di sistem.',
+            'classroom_id.required' => 'Kelas wajib dipilih.',
+            'classroom_id.exists' => 'Kelas yang dipilih tidak valid.',
         ]);
 
         try {
+            Log::info('Attempting to create student', [
+                'nis' => $request->nis,
+                'email' => $request->email,
+                'classroom_id' => $request->classroom_id,
+            ]);
+
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->nis),
-                'role' => 'student', // Kolom role di tabel users (jika masih digunakan)
+                'role' => 'student',
             ]);
 
-            // Tugaskan role 'student' ke tabel model_has_roles menggunakan Spatie
             $user->assignRole('student');
 
             $barcodeId = rand(100000, 999999);
@@ -56,12 +70,10 @@ class StudentController extends Controller
                 'user_id' => $user->id,
             ]);
 
-            // Ensure qrcodes directory exists
             if (!File::exists(public_path('qrcodes'))) {
                 File::makeDirectory(public_path('qrcodes'), 0755, true);
             }
 
-            // Generate QR Code for student
             QrCode::format('svg')
                   ->size(400)
                   ->margin(3)
@@ -70,9 +82,20 @@ class StudentController extends Controller
                   ->backgroundColor(245, 245, 245)
                   ->generate((string)$barcodeId, public_path('qrcodes/student_'.$barcodeId.'.svg'));
 
+            Log::info('Student created successfully', [
+                'student_id' => $student->id,
+                'user_id' => $user->id,
+                'barcode' => $barcodeId,
+            ]);
+
             return redirect()->route('students.index')->with('success', 'Siswa berhasil ditambahkan.');
         } catch (\Exception $e) {
-            Log::error('Error creating student: '.$e->getMessage());
+            Log::error('Error creating student', [
+                'nis' => $request->nis,
+                'email' => $request->email,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return back()->withInput()->with('error', 'Gagal menambahkan siswa: ' . $e->getMessage());
         }
     }
@@ -87,9 +110,18 @@ class StudentController extends Controller
     {
         $request->validate([
             'nis' => 'required|unique:students,nis,' . $student->id,
-            'name' => 'required',
+            'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $student->user_id,
             'classroom_id' => 'required|exists:classrooms,id',
+        ], [
+            'nis.required' => 'NIS wajib diisi.',
+            'nis.unique' => 'NIS sudah digunakan oleh siswa lain.',
+            'name.required' => 'Nama wajib diisi.',
+            'email.required' => 'Email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'email.unique' => 'Email sudah terdaftar di sistem.',
+            'classroom_id.required' => 'Kelas wajib dipilih.',
+            'classroom_id.exists' => 'Kelas yang dipilih tidak valid.',
         ]);
 
         try {
@@ -102,13 +134,11 @@ class StudentController extends Controller
             $student->user->update([
                 'name' => $request->name,
                 'email' => $request->email,
-                'role' => 'student', // Update kolom role di tabel users (jika masih digunakan)
+                'role' => 'student',
             ]);
 
-            // Pastikan role 'student' tetap ada di tabel model_has_roles
             $student->user->syncRoles(['student']);
 
-            // Regenerate QR Code if needed
             if (!File::exists(public_path('qrcodes/student_'.$student->barcode.'.svg'))) {
                 QrCode::format('svg')
                       ->size(400)
@@ -119,9 +149,19 @@ class StudentController extends Controller
                       ->generate((string)$student->barcode, public_path('qrcodes/student_'.$student->barcode.'.svg'));
             }
 
+            Log::info('Student updated successfully', [
+                'student_id' => $student->id,
+                'nis' => $request->nis,
+                'email' => $request->email,
+            ]);
+
             return redirect()->route('students.index')->with('success', 'Siswa berhasil diperbarui.');
         } catch (\Exception $e) {
-            Log::error('Error updating student: '.$e->getMessage());
+            Log::error('Error updating student', [
+                'student_id' => $student->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return back()->withInput()->with('error', 'Gagal memperbarui siswa: ' . $e->getMessage());
         }
     }
@@ -134,20 +174,28 @@ class StudentController extends Controller
                 try {
                     File::delete($qrCodePath);
                 } catch (\Exception $e) {
-                    Log::error('Error deleting QR code: '.$e->getMessage());
+                    Log::error('Error deleting QR code', [
+                        'student_id' => $student->id,
+                        'error' => $e->getMessage(),
+                    ]);
                 }
             }
 
             if ($student->user) {
-                // Hapus semua role dari user di tabel model_has_roles
                 $student->user->syncRoles([]);
                 $student->user->delete();
             }
             $student->delete();
 
+            Log::info('Student deleted successfully', ['student_id' => $student->id]);
+
             return redirect()->route('students.index')->with('success', 'Siswa berhasil dihapus.');
         } catch (\Exception $e) {
-            Log::error('Error deleting student: '.$e->getMessage());
+            Log::error('Error deleting student', [
+                'student_id' => $student->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return back()->with('error', 'Gagal menghapus siswa: ' . $e->getMessage());
         }
     }

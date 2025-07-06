@@ -87,6 +87,15 @@
             font-style: italic;
         }
 
+        /* Style untuk section heading */
+        .section-heading {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin: 2rem 0 1rem;
+            padding-left: 1rem;
+        }
+
         /* Style custom lainnya tetap sama */
         .qr-container {
             position: relative;
@@ -160,67 +169,206 @@
             <input type="text" id="searchInput" class="search-input" placeholder="Cari berdasarkan NIS, Nama, atau Kelas...">
         </div>
 
-        <div class="bg-white shadow-md rounded-lg overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full" id="studentTable">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NIS</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kelas</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">QR Code</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200" id="studentTableBody">
-                        @foreach ($students as $student)
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $student->nis }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $student->name }}</td>
-                                <td class="px-6 py-4 text-sm text-gray-500">
-                                    {{ $student->classroom ? $student->classroom->level . ' ' . $student->classroom->major . ' ' . $student->classroom->class_code : '-' }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    @if (file_exists(public_path('qrcodes/student_'.$student->barcode.'.svg')))
-                                        <div class="qr-container" id="qr-container-{{ $student->id }}">
-                                            <img src="{{ asset('qrcodes/student_'.$student->barcode.'.svg') }}" alt="QR Code" class="qr-preview rounded border border-gray-200">
-                                            <div class="qr-download-btn" onclick="downloadQRCode({{ $student->id }}, '{{ $student->name }}')">Download HQ</div>
-                                        </div>
-                                    @else
-                                        <span class="text-sm text-gray-400">QR Code tidak ditemukan</span>
-                                    @endif
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <div class="flex space-x-2">
-                                        <a href="{{ route('students.edit', $student->id) }}" class="text-blue-600 hover:text-blue-900">Edit</a>
-                                        <form action="{{ route('students.destroy', $student->id) }}" method="POST" class="inline delete-form">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-red-600 hover:text-red-900" onclick="event.preventDefault(); Swal.fire({
-                                                title: 'Yakin ingin menghapus?',
-                                                text: 'Data siswa {{ $student->name }} akan dihapus secara permanen!',
-                                                icon: 'warning',
-                                                showCancelButton: true,
-                                                confirmButtonColor: '#dc2626',
-                                                cancelButtonColor: '#6b7280',
-                                                confirmButtonText: 'Ya, Hapus!',
-                                                cancelButtonText: 'Batal',
-                                                reverseButtons: true
-                                            }).then((result) => {
-                                                if (result.isConfirmed) {
-                                                    this.closest('form').submit();
-                                                }
-                                            });">Hapus</button>
-                                        </form>
-                                    </div>
-                                </td>
+        <!-- Kelas 10 -->
+        <div class="level-section" data-level="10">
+            <h2 class="section-heading">Kelas 10</h2>
+            <div class="bg-white shadow-md rounded-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full" id="studentTable10">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NIS</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kelas</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">QR Code</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-                <div id="noResults" class="no-results">Tidak ada data yang cocok dengan pencarian Anda.</div>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200" id="studentTableBody10">
+                            @foreach ($students->filter(fn($student) => $student->classroom && $student->classroom->level == '10') as $student)
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $student->nis }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $student->name }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-500">
+                                        {{ $student->classroom ? $student->classroom->level . ' ' . $student->classroom->major . ' ' . $student->classroom->class_code : '-' }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        @if (file_exists(public_path('qrcodes/student_'.$student->barcode.'.svg')))
+                                            <div class="qr-container" id="qr-container-{{ $student->id }}">
+                                                <img src="{{ asset('qrcodes/student_'.$student->barcode.'.svg') }}" alt="QR Code" class="qr-preview rounded border border-gray-200">
+                                                <div class="qr-download-btn" onclick="downloadQRCode({{ $student->id }}, '{{ $student->name }}')">Download HQ</div>
+                                            </div>
+                                        @else
+                                            <span class="text-sm text-gray-400">QR Code tidak ditemukan</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <div class="flex space-x-2">
+                                            <a href="{{ route('students.edit', $student->id) }}" class="text-blue-600 hover:text-blue-900">Edit</a>
+                                            <form action="{{ route('students.destroy', $student->id) }}" method="POST" class="inline delete-form">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="text-red-600 hover:text-red-900" onclick="event.preventDefault(); Swal.fire({
+                                                    title: 'Yakin ingin menghapus?',
+                                                    text: 'Data siswa {{ $student->name }} akan dihapus secara permanen!',
+                                                    icon: 'warning',
+                                                    showCancelButton: true,
+                                                    confirmButtonColor: '#dc2626',
+                                                    cancelButtonColor: '#6b7280',
+                                                    confirmButtonText: 'Ya, Hapus!',
+                                                    cancelButtonText: 'Batal',
+                                                    reverseButtons: true
+                                                }).then((result) => {
+                                                    if (result.isConfirmed) {
+                                                        this.closest('form').submit();
+                                                    }
+                                                });">Hapus</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                    <div class="no-results" id="noResults10">Tidak ada siswa di Kelas 10 yang cocok dengan pencarian Anda.</div>
+                </div>
             </div>
         </div>
+
+        <!-- Kelas 11 -->
+        <div class="level-section" data-level="11">
+            <h2 class="section-heading">Kelas 11</h2>
+            <div class="bg-white shadow-md rounded-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full" id="studentTable11">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NIS</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kelas</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">QR Code</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200" id="studentTableBody11">
+                            @foreach ($students->filter(fn($student) => $student->classroom && $student->classroom->level == '11') as $student)
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $student->nis }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $student->name }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-500">
+                                        {{ $student->classroom ? $student->classroom->level . ' ' . $student->classroom->major . ' ' . $student->classroom->class_code : '-' }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        @if (file_exists(public_path('qrcodes/student_'.$student->barcode.'.svg')))
+                                            <div class="qr-container" id="qr-container-{{ $student->id }}">
+                                                <img src="{{ asset('qrcodes/student_'.$student->barcode.'.svg') }}" alt="QR Code" class="qr-preview rounded border border-gray-200">
+                                                <div class="qr-download-btn" onclick="downloadQRCode({{ $student->id }}, '{{ $student->name }}')">Download HQ</div>
+                                            </div>
+                                        @else
+                                            <span class="text-sm text-gray-400">QR Code tidak ditemukan</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <div class="flex space-x-2">
+                                            <a href="{{ route('students.edit', $student->id) }}" class="text-blue-600 hover:text-blue-900">Edit</a>
+                                            <form action="{{ route('students.destroy', $student->id) }}" method="POST" class="inline delete-form">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="text-red-600 hover:text-red-900" onclick="event.preventDefault(); Swal.fire({
+                                                    title: 'Yakin ingin menghapus?',
+                                                    text: 'Data siswa {{ $student->name }} akan dihapus secara permanen!',
+                                                    icon: 'warning',
+                                                    showCancelButton: true,
+                                                    confirmButtonColor: '#dc2626',
+                                                    cancelButtonColor: '#6b7280',
+                                                    confirmButtonText: 'Ya, Hapus!',
+                                                    cancelButtonText: 'Batal',
+                                                    reverseButtons: true
+                                                }).then((result) => {
+                                                    if (result.isConfirmed) {
+                                                        this.closest('form').submit();
+                                                    }
+                                                });">Hapus</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                    <div class="no-results" id="noResults11">Tidak ada siswa di Kelas 11 yang cocok dengan pencarian Anda.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kelas 12 -->
+        <div class="level-section" data-level="12">
+            <h2 class="section-heading">Kelas 12</h2>
+            <div class="bg-white shadow-md rounded-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full" id="studentTable12">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NIS</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kelas</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">QR Code</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200" id="studentTableBody12">
+                            @foreach ($students->filter(fn($student) => $student->classroom && $student->classroom->level == '12') as $student)
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $student->nis }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $student->name }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-500">
+                                        {{ $student->classroom ? $student->classroom->level . ' ' . $student->classroom->major . ' ' . $student->classroom->class_code : '-' }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        @if (file_exists(public_path('qrcodes/student_'.$student->barcode.'.svg')))
+                                            <div class="qr-container" id="qr-container-{{ $student->id }}">
+                                                <img src="{{ asset('qrcodes/student_'.$student->barcode.'.svg') }}" alt="QR Code" class="qr-preview rounded border border-gray-200">
+                                                <div class="qr-download-btn" onclick="downloadQRCode({{ $student->id }}, '{{ $student->name }}')">Download HQ</div>
+                                            </div>
+                                        @else
+                                            <span class="text-sm text-gray-400">QR Code tidak ditemukan</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <div class="flex space-x-2">
+                                            <a href="{{ route('students.edit', $student->id) }}" class="text-blue-600 hover:text-blue-900">Edit</a>
+                                            <form action="{{ route('students.destroy', $student->id) }}" method="POST" class="inline delete-form">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="text-red-600 hover:text-red-900" onclick="event.preventDefault(); Swal.fire({
+                                                    title: 'Yakin ingin menghapus?',
+                                                    text: 'Data siswa {{ $student->name }} akan dihapus secara permanen!',
+                                                    icon: 'warning',
+                                                    showCancelButton: true,
+                                                    confirmButtonColor: '#dc2626',
+                                                    cancelButtonColor: '#6b7280',
+                                                    confirmButtonText: 'Ya, Hapus!',
+                                                    cancelButtonText: 'Batal',
+                                                    reverseButtons: true
+                                                }).then((result) => {
+                                                    if (result.isConfirmed) {
+                                                        this.closest('form').submit();
+                                                    }
+                                                });">Hapus</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                    <div class="no-results" id="noResults12">Tidak ada siswa di Kelas 12 yang cocok dengan pencarian Anda.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- General No Results Message -->
+        <div id="noResults" class="no-results">Tidak ada data yang cocok dengan pencarian Anda.</div>
     </div>
 
     <!-- Template untuk download QR Code -->
@@ -286,28 +434,39 @@
             // Fungsi Live Search
             document.getElementById('searchInput').addEventListener('input', function(e) {
                 const searchValue = e.target.value.toLowerCase();
-                const rows = document.querySelectorAll('#studentTableBody tr');
-                const noResults = document.getElementById('noResults');
-                let hasVisibleRows = false;
+                const sections = document.querySelectorAll('.level-section');
+                const generalNoResults = document.getElementById('noResults');
+                let hasVisibleSections = false;
 
-                rows.forEach(row => {
-                    const nis = row.cells[0].textContent.toLowerCase();
-                    const name = row.cells[1].textContent.toLowerCase();
-                    const classroom = row.cells[2].textContent.toLowerCase();
+                sections.forEach(section => {
+                    const level = section.getAttribute('data-level');
+                    const rows = section.querySelectorAll(`#studentTableBody${level} tr`);
+                    const noResults = section.querySelector(`#noResults${level}`);
+                    let hasVisibleRows = false;
 
-                    if (
-                        nis.includes(searchValue) ||
-                        name.includes(searchValue) ||
-                        classroom.includes(searchValue)
-                    ) {
-                        row.style.display = '';
-                        hasVisibleRows = true;
-                    } else {
-                        row.style.display = 'none';
-                    }
+                    rows.forEach(row => {
+                        const nis = row.cells[0].textContent.toLowerCase();
+                        const name = row.cells[1].textContent.toLowerCase();
+                        const classroom = row.cells[2].textContent.toLowerCase();
+
+                        if (
+                            nis.includes(searchValue) ||
+                            name.includes(searchValue) ||
+                            classroom.includes(searchValue)
+                        ) {
+                            row.style.display = '';
+                            hasVisibleRows = true;
+                            hasVisibleSections = true;
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+
+                    noResults.style.display = hasVisibleRows ? 'none' : 'block';
+                    section.style.display = hasVisibleRows ? 'block' : 'none';
                 });
 
-                noResults.style.display = hasVisibleRows ? 'none' : 'block';
+                generalNoResults.style.display = hasVisibleSections ? 'none' : 'block';
             });
         });
 

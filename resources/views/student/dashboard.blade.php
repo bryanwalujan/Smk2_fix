@@ -124,7 +124,7 @@
             <div class="bg-white rounded-xl p-6 card-shadow text-center">
                 <h2 class="text-xl font-bold text-gray-800 mb-4">Akses Sistem LMS</h2>
                 <p class="text-gray-600 mb-6">Masuk ke Learning Management System untuk mengelola pembelajaran Anda</p>
-                <a href="{{ route('student.lms.index') }}" 
+                <a href="{{ route('lms.index') }}" 
                    class="btn-primary inline-flex items-center justify-center">
                     <i class="fas fa-door-open mr-2"></i> Masuk ke LMS Sekarang
                 </a>

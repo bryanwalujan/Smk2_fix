@@ -25,7 +25,7 @@
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-lg font-semibold text-gray-800">Jadwal Kelas</h2>
-                <a href="{{ route('schedules.create', $classroom) }}" 
+                <a href="{{ route('admin.schedules.create', $classroom) }}" 
                    class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                     <i class="fas fa-calendar-plus"></i>
                     <span>Tambah Jadwal</span>
@@ -51,12 +51,12 @@
                                 <td class="py-4 px-6 text-gray-600">{{ $schedule->start_time }} - {{ $schedule->end_time }}</td>
                                 <td class="py-4 px-6 text-right whitespace-nowrap">
                                     <div class="flex justify-end gap-2">
-                                        <a href="{{ route('schedules.edit', [$classroom, $schedule]) }}" 
+                                        <a href="{{ route('admin.schedules.edit', [$classroom, $schedule]) }}" 
                                            class="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition"
                                            title="Edit">
                                             <i class="fas fa-pencil-alt"></i>
                                         </a>
-                                        <form action="{{ route('schedules.destroy', [$classroom, $schedule]) }}" method="POST" class="delete-form">
+                                        <form action="{{ route('admin.schedules.destroy', [$classroom, $schedule]) }}" method="POST" class="delete-form">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" 

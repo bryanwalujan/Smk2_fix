@@ -21,7 +21,7 @@
         @endif
 
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <form action="{{ route('schedules.store', $classroom) }}" method="POST">
+            <form action="{{ route('admin.schedules.store', $classroom) }}" method="POST">
                 @csrf
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>

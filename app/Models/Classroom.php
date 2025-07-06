@@ -9,12 +9,13 @@ class Classroom extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['level', 'major', 'class_code'];
+    protected $fillable = ['level', 'major', 'class_code', 'full_name'];
 
     // Computed attribute for full_name
     public function getFullNameAttribute()
     {
-        return "{$this->level} {$this->major} {$this->class_code}";
+        // Jika full_name di database kosong, gunakan level, major, dan class_code
+        return $this->attributes['full_name'] ?? "{$this->level} {$this->major} {$this->class_code}";
     }
 
     // Relasi ke schedules
@@ -23,6 +24,7 @@ class Classroom extends Model
         return $this->hasMany(Schedule::class);
     }
 
+    // Relasi ke students
     public function students()
     {
         return $this->hasMany(Student::class);

@@ -25,13 +25,16 @@ class ScheduleController extends Controller
 
     public function index()
     {
-        $schedules = Schedule::with(['classroom', 'teacher', 'subject'])->get();
+        $schedules = Schedule::with(['classroom', 'teacher', 'subject'])
+            ->orderBy('day')
+            ->orderBy('start_time')
+            ->get();
         return view('admin.schedules.index', compact('schedules'));
     }
 
     public function create(Classroom $classroom)
     {
-        $teachers = Teacher::all();
+        $teachers = Teacher::with('user')->get();
         $subjects = Subject::pluck('name', 'id');
         return view('admin.schedules.create', compact('classroom', 'subjects', 'teachers'));
     }
@@ -42,9 +45,31 @@ class ScheduleController extends Controller
             'subject_id' => 'required|exists:subjects,id',
             'teacher_id' => 'required|exists:teachers,id',
             'day' => 'required|in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu',
-            'start_time' => 'required',
-            'end_time' => 'required|after:start_time',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
         ]);
+
+        // Cek konflik jadwal
+        $conflict = Schedule::where('classroom_id', $classroom->id)
+            ->where('day', $request->day)
+            ->where(function ($query) use ($request) {
+                $query->whereBetween('start_time', [$request->start_time, $request->end_time])
+                    ->orWhereBetween('end_time', [$request->start_time, $request->end_time])
+                    ->orWhereRaw('? BETWEEN start_time AND end_time', [$request->start_time])
+                    ->orWhereRaw('? BETWEEN start_time AND end_time', [$request->end_time]);
+            })
+            ->exists();
+
+        if ($conflict) {
+            Log::warning('Schedule conflict detected', [
+                'classroom_id' => $classroom->id,
+                'day' => $request->day,
+                'start_time' => $request->start_time,
+                'end_time' => $request->end_time,
+            ]);
+            return redirect()->route('admin.schedules.create', $classroom)
+                ->with('error', 'Jadwal bentrok dengan jadwal lain di kelas ini.');
+        }
 
         $schedule = Schedule::create([
             'classroom_id' => $classroom->id,
@@ -57,14 +82,32 @@ class ScheduleController extends Controller
 
         $this->createRecurringClassSessions($schedule);
 
-        return redirect()->route('classrooms.show', $classroom)->with('success', 'Jadwal berhasil ditambahkan dan pertemuan berulang dibuat.');
+        Log::info('Schedule created', [
+            'schedule_id' => $schedule->id,
+            'classroom_id' => $classroom->id,
+            'teacher_id' => $request->teacher_id,
+            'subject_id' => $request->subject_id,
+            'day' => $request->day,
+        ]);
+
+        return redirect()->route('classrooms.show', $classroom)
+            ->with('success', 'Jadwal berhasil ditambahkan dan pertemuan berulang dibuat.');
     }
 
     public function edit(Classroom $classroom, Schedule $schedule)
     {
-        $teachers = Teacher::all();
+        $teachers = Teacher::with('user')->get();
         $subjects = Subject::pluck('name', 'id');
-        return view('admin.schedules.edit', compact('classroom', 'schedule', 'subjects', 'teachers'));
+        $firstSession = ClassSession::where('teacher_id', $schedule->teacher_id)
+            ->where('classroom_id', $schedule->classroom_id)
+            ->where('subject_id', $schedule->subject_id)
+            ->where('day_of_week', $schedule->day)
+            ->where('start_time', $schedule->start_time)
+            ->where('end_time', $schedule->end_time)
+            ->orderBy('date')
+            ->first();
+
+        return view('admin.schedules.edit', compact('classroom', 'schedule', 'subjects', 'teachers', 'firstSession'));
     }
 
     public function update(Request $request, Classroom $classroom, Schedule $schedule)
@@ -73,12 +116,50 @@ class ScheduleController extends Controller
             'subject_id' => 'required|exists:subjects,id',
             'teacher_id' => 'required|exists:teachers,id',
             'day' => 'required|in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu',
-            'start_time' => 'required',
-            'end_time' => 'required|after:start_time',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+            'first_session_date' => 'required|date|after_or_equal:today',
         ]);
 
-        $schedule->classSessions()->delete();
+        // Cek konflik jadwal
+        $conflict = Schedule::where('classroom_id', $classroom->id)
+            ->where('id', '!=', $schedule->id)
+            ->where('day', $request->day)
+            ->where(function ($query) use ($request) {
+                $query->whereBetween('start_time', [$request->start_time, $request->end_time])
+                    ->orWhereBetween('end_time', [$request->start_time, $request->end_time])
+                    ->orWhereRaw('? BETWEEN start_time AND end_time', [$request->start_time])
+                    ->orWhereRaw('? BETWEEN start_time AND end_time', [$request->end_time]);
+            })
+            ->exists();
 
+        if ($conflict) {
+            Log::warning('Schedule conflict detected on update', [
+                'schedule_id' => $schedule->id,
+                'classroom_id' => $classroom->id,
+                'day' => $request->day,
+                'start_time' => $request->start_time,
+                'end_time' => $request->end_time,
+            ]);
+            return redirect()->route('admin.schedules.edit', [$classroom, $schedule])
+                ->with('error', 'Jadwal bentrok dengan jadwal lain di kelas ini.');
+        }
+
+        // Hapus class_sessions terkait
+        $deletedSessions = ClassSession::where('teacher_id', $schedule->teacher_id)
+            ->where('classroom_id', $schedule->classroom_id)
+            ->where('subject_id', $schedule->subject_id)
+            ->where('day_of_week', $schedule->day)
+            ->where('start_time', $schedule->start_time)
+            ->where('end_time', $schedule->end_time)
+            ->delete();
+
+        Log::info('Deleted existing class sessions for schedule', [
+            'schedule_id' => $schedule->id,
+            'deleted_count' => $deletedSessions,
+        ]);
+
+        // Perbarui jadwal
         $schedule->update([
             'subject_id' => $request->subject_id,
             'teacher_id' => $request->teacher_id,
@@ -87,27 +168,54 @@ class ScheduleController extends Controller
             'end_time' => $request->end_time,
         ]);
 
-        $this->createRecurringClassSessions($schedule);
+        // Buat ulang sesi mulai dari tanggal pertama
+        $this->createRecurringClassSessions($schedule, Carbon::parse($request->first_session_date));
 
-        return redirect()->route('classrooms.show', $classroom)->with('success', 'Jadwal berhasil diperbarui dan pertemuan berulang dibuat.');
+        Log::info('Schedule updated', [
+            'schedule_id' => $schedule->id,
+            'classroom_id' => $classroom->id,
+            'teacher_id' => $request->teacher_id,
+            'subject_id' => $request->subject_id,
+            'day' => $request->day,
+            'first_session_date' => $request->first_session_date,
+        ]);
+
+        return redirect()->route('classrooms.show', $classroom)
+            ->with('success', 'Jadwal berhasil diperbarui dan pertemuan berulang dibuat.');
     }
 
     public function destroy(Classroom $classroom, Schedule $schedule)
     {
         try {
             Log::info('Attempting to delete schedule', ['schedule_id' => $schedule->id]);
-            $schedule->classSessions()->delete();
-            Log::info('Deleted class_sessions for schedule_id: ' . $schedule->id);
+
+            // Hapus class_sessions terkait
+            $deletedSessions = ClassSession::where('teacher_id', $schedule->teacher_id)
+                ->where('classroom_id', $schedule->classroom_id)
+                ->where('subject_id', $schedule->subject_id)
+                ->where('day_of_week', $schedule->day)
+                ->where('start_time', $schedule->start_time)
+                ->where('end_time', $schedule->end_time)
+                ->delete();
+
+            Log::info('Deleted class_sessions for schedule', [
+                'schedule_id' => $schedule->id,
+                'deleted_count' => $deletedSessions,
+            ]);
+
             $schedule->delete();
             Log::info('Deleted schedule', ['schedule_id' => $schedule->id]);
-            return redirect()->route('classrooms.show', $classroom)->with('success', 'Jadwal dan semua pertemuan terkait berhasil dihapus.');
+
+            return redirect()->route('classrooms.show', $classroom)
+                ->with('success', 'Jadwal dan semua pertemuan terkait berhasil dihapus.');
         } catch (\Exception $e) {
             Log::error('Error deleting schedule', [
                 'schedule_id' => $schedule->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return redirect()->route('classrooms.show', $classroom)->with('error', 'Gagal menghapus jadwal: ' . $e->getMessage());
+            return redirect()->route('classrooms.show', $classroom)
+                ->with('error', 'Gagal menghapus jadwal: ' . $e->getMessage());
         }
     }
 
@@ -121,6 +229,11 @@ class ScheduleController extends Controller
             ->where('end_time', $schedule->end_time)
             ->orderBy('date')
             ->get();
+
+        Log::info('Showing class sessions', [
+            'schedule_id' => $schedule->id,
+            'class_sessions_count' => $classSessions->count(),
+        ]);
 
         return view('admin.schedules.sessions', compact('schedule', 'classSessions'));
     }
@@ -139,59 +252,36 @@ class ScheduleController extends Controller
                 'Rabu' => 'Wednesday',
                 'Kamis' => 'Thursday',
                 'Jumat' => 'Friday',
-                'Sabtu' => 'Saturday'
+                'Sabtu' => 'Saturday',
             ];
 
             // Pastikan tanggal pertama sesuai dengan hari jadwal
             if ($newFirstDate->translatedFormat('l') !== $schedule->day) {
+                Log::warning('Invalid first session date', [
+                    'schedule_id' => $schedule->id,
+                    'first_session_date' => $request->first_session_date,
+                    'expected_day' => $schedule->day,
+                ]);
                 return redirect()->route('admin.schedules.sessions', $schedule)
                     ->with('error', 'Tanggal pertama harus sesuai dengan hari jadwal (' . $schedule->day . ').');
             }
 
             // Hapus semua class_sessions untuk jadwal ini
-            $schedule->classSessions()->delete();
+            $deletedSessions = ClassSession::where('teacher_id', $schedule->teacher_id)
+                ->where('classroom_id', $schedule->classroom_id)
+                ->where('subject_id', $schedule->subject_id)
+                ->where('day_of_week', $schedule->day)
+                ->where('start_time', $schedule->start_time)
+                ->where('end_time', $schedule->end_time)
+                ->delete();
+
             Log::info('Deleted existing class sessions for schedule', [
                 'schedule_id' => $schedule->id,
+                'deleted_count' => $deletedSessions,
             ]);
 
             // Buat ulang class_sessions mulai dari tanggal baru
-            $totalWeeks = 52;
-            $endDate = Carbon::create(2026, 6, 30);
-            $currentDate = $newFirstDate;
-            $sessionsCreated = 0;
-
-            while ($sessionsCreated < $totalWeeks && $currentDate <= $endDate) {
-                if (!$this->holidayService->isHoliday($currentDate)) {
-                    ClassSession::create([
-                        'teacher_id' => $schedule->teacher_id,
-                        'classroom_id' => $schedule->classroom_id,
-                        'subject_id' => $schedule->subject_id,
-                        'day_of_week' => $schedule->day,
-                        'date' => $currentDate->toDateString(),
-                        'start_time' => $schedule->start_time,
-                        'end_time' => $schedule->end_time,
-                        'created_by' => Auth::id(),
-                    ]);
-                    $sessionsCreated++;
-                    Log::info('Created class session', [
-                        'schedule_id' => $schedule->id,
-                        'date' => $currentDate->toDateString(),
-                        'day_of_week' => $schedule->day,
-                    ]);
-                } else {
-                    Log::info('Skipped class session due to holiday', [
-                        'schedule_id' => $schedule->id,
-                        'date' => $currentDate->toDateString(),
-                        'day_of_week' => $schedule->day,
-                    ]);
-                }
-                $currentDate->addWeek();
-            }
-
-            Log::info('Finished creating recurring class sessions', [
-                'schedule_id' => $schedule->id,
-                'total_sessions' => $sessionsCreated,
-            ]);
+            $this->createRecurringClassSessions($schedule, $newFirstDate);
 
             return redirect()->route('admin.schedules.sessions', $schedule)
                 ->with('success', 'Tanggal pertemuan pertama berhasil diubah dan pertemuan berulang dibuat.');
@@ -209,17 +299,14 @@ class ScheduleController extends Controller
     public function deleteSession(Schedule $schedule, ClassSession $session)
     {
         try {
-            // Pastikan session terkait dengan schedule
-            if ($session->teacher_id !== $schedule->teacher_id ||
-                $session->classroom_id !== $schedule->classroom_id ||
-                $session->subject_id !== $schedule->subject_id ||
-                $session->day_of_week !== $schedule->day) {
-                return redirect()->route('admin.schedules.sessions', $schedule)
-                    ->with('error', 'Pertemuan tidak sesuai dengan jadwal.');
-            }
+            Log::info('Attempting to delete class session', [
+                'schedule_id' => $schedule->id,
+                'session_id' => $session->id,
+                'date' => $session->date,
+            ]);
 
-            // Hapus session ini dan semua session berikutnya
-            ClassSession::where('teacher_id', $schedule->teacher_id)
+            // Hapus session ini dan semua session berikutnya untuk jadwal yang sama
+            $deletedSessions = ClassSession::where('teacher_id', $schedule->teacher_id)
                 ->where('classroom_id', $schedule->classroom_id)
                 ->where('subject_id', $schedule->subject_id)
                 ->where('day_of_week', $schedule->day)
@@ -232,6 +319,7 @@ class ScheduleController extends Controller
                 'schedule_id' => $schedule->id,
                 'session_id' => $session->id,
                 'date' => $session->date,
+                'deleted_count' => $deletedSessions,
             ]);
 
             return redirect()->route('admin.schedules.sessions', $schedule)
@@ -248,7 +336,7 @@ class ScheduleController extends Controller
         }
     }
 
-    protected function createRecurringClassSessions(Schedule $schedule)
+    protected function createRecurringClassSessions(Schedule $schedule, $startDate = null)
     {
         $dayMap = [
             'Senin' => 'Monday',
@@ -256,14 +344,18 @@ class ScheduleController extends Controller
             'Rabu' => 'Wednesday',
             'Kamis' => 'Thursday',
             'Jumat' => 'Friday',
-            'Sabtu' => 'Saturday'
+            'Sabtu' => 'Saturday',
         ];
 
         $totalWeeks = 52;
-        $startDate = Carbon::today()->startOfWeek()->next($dayMap[$schedule->day]);
         $endDate = Carbon::create(2026, 6, 30);
+        $currentDate = $startDate ? Carbon::parse($startDate) : Carbon::today()->startOfWeek()->next($dayMap[$schedule->day]);
+        
+        // Validasi hari agar sesuai
+        if ($currentDate->translatedFormat('l') !== $schedule->day) {
+            $currentDate = $currentDate->next($dayMap[$schedule->day]);
+        }
 
-        $currentDate = $startDate;
         $sessionsCreated = 0;
         while ($sessionsCreated < $totalWeeks && $currentDate <= $endDate) {
             if (!$this->holidayService->isHoliday($currentDate)) {

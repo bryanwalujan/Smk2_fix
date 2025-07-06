@@ -36,6 +36,7 @@ class RolePermissionSeeder extends Seeder
 
         // Berikan semua izin ke admin
         $adminRole->syncPermissions($permissions);
+        $teacherRole->syncPermissions($permissions);
 
         // Berikan izin terbatas ke teacher
         $teacherRole->syncPermissions([
@@ -45,6 +46,7 @@ class RolePermissionSeeder extends Seeder
             'export_excel',
             'export_pdf',
             'manage_lms',
+            'view_lms',
         ]);
 
         // Berikan izin terbatas ke student

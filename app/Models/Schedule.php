@@ -37,7 +37,13 @@ class Schedule extends Model
 
     public function classSessions()
     {
-        return $this->hasMany(ClassSession::class, 'schedule_id');
+        return $this->hasMany(ClassSession::class)
+            ->where('teacher_id', $this->teacher_id)
+            ->where('classroom_id', $this->classroom_id)
+            ->where('subject_id', $this->subject_id)
+            ->where('day_of_week', $this->day)
+            ->where('start_time', $this->start_time)
+            ->where('end_time', $this->end_time);
     }
 
     public function materials()

@@ -11,7 +11,9 @@ class Assignment extends Model
 
     protected $fillable = ['schedule_id', 'title', 'description', 'deadline'];
 
-    protected $dates = ['deadline'];
+    protected $casts = [
+        'deadline' => 'datetime',
+    ];
 
     public function schedule()
     {

@@ -173,6 +173,9 @@ class AdminController extends Controller
     {
         $this->authorize('manage_users');
 
+        // Increase max execution time to 10 minutes (600 seconds)
+        ini_set('max_execution_time', 600);
+
         $request->validate([
             'file' => 'required|mimes:xlsx',
         ], [
@@ -532,6 +535,7 @@ class AdminController extends Controller
                     'level' => $level,
                     'major' => $major,
                     'class_code' => $classCode,
+                    'full_name' => trim("$level $major $classCode"),
                 ]);
             }
 

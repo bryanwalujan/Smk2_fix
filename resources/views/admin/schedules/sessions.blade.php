@@ -4,191 +4,119 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detail Pertemuan - {{ $schedule->classroom->full_name }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f9fafb;
         }
-        
-        .swal2-popup {
-            border-radius: 1rem !important;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
-            overflow: hidden !important;
-            padding: 2.5rem !important;
-            border: 1px solid #e5e7eb !important;
+
+        .btn-primary {
+            @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200;
         }
-        
-        .swal2-title {
-            font-size: 1.5rem !important;
-            font-weight: 700 !important;
-            color: #1f2937 !important;
-            margin-bottom: 1.25rem !important;
+
+        .btn-secondary {
+            @apply inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200;
         }
-        
-        .swal2-html-container {
-            font-size: 1.05rem !important;
-            color: #4b5563 !important;
-            line-height: 1.6 !important;
+
+        .btn-icon {
+            @apply inline-flex items-center justify-center p-2 rounded-full text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200;
         }
-        
-        .swal2-icon {
-            width: 5rem !important;
-            height: 5rem !important;
-            margin: 1.5rem auto 1.5rem !important;
-        }
-        
-        .swal2-icon.swal2-success {
-            border-color: #34d399 !important;
-            color: #34d399 !important;
-        }
-        
-        .swal2-icon.swal2-error {
-            border-color: #f87171 !important;
-            color: #f87171 !important;
-        }
-        
-        .swal2-success-ring {
-            border-color: rgba(52, 211, 153, 0.3) !important;
-        }
-        
-        .swal2-success-line {
-            background-color: #10b981 !important;
-        }
-        
-        .swal2-x-mark-line {
-            background-color: #ef4444 !important;
-        }
-        
-        .swal2-styled.swal2-confirm {
-            background-color: #3b82f6 !important;
-            border-radius: 0.75rem !important;
-            padding: 0.75rem 2rem !important;
-            font-size: 1rem !important;
-            font-weight: 600 !important;
-            transition: all 0.2s ease !important;
-            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3), 0 2px 4px -1px rgba(59, 130, 246, 0.1) !important;
-        }
-        
-        .swal2-styled.swal2-confirm:hover {
-            background-color: #2563eb !important;
-            transform: translateY(-2px) !important;
-            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3), 0 4px 6px -2px rgba(59, 130, 246, 0.1) !important;
-        }
-        
-        .swal2-styled.swal2-cancel {
-            border-radius: 0.75rem !important;
-            padding: 0.75rem 2rem !important;
-            font-size: 1rem !important;
-            font-weight: 600 !important;
-            transition: all 0.2s ease !important;
-        }
-        
-        .swal2-timer-progress-bar {
-            height: 0.25rem !important;
-            border-radius: 0 0 0.25rem 0.25rem !important;
-        }
-        
-        .swal2-success .swal2-timer-progress-bar {
-            background: linear-gradient(90deg, #34d399, #10b981) !important;
-        }
-        
-        .swal2-error .swal2-timer-progress-bar {
-            background: linear-gradient(90deg, #f87171, #ef4444) !important;
-        }
-        
-        .table-row-hover {
-            transition: all 0.2s;
-        }
-        
-        .table-row-hover:hover {
-            background-color: #f9fafb;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-        }
-        
-        .btn-submit {
-            transition: all 0.2s;
-            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3), 0 2px 4px -1px rgba(37, 99, 235, 0.1);
-        }
-        
-        .btn-submit:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3), 0 4px 6px -2px rgba(37, 99, 235, 0.1);
-        }
-        
+
         .card {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            @apply bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden;
         }
-        
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+
+        .card-header {
+            @apply p-6 bg-gradient-to-r from-indigo-50 to-indigo-100 border-b border-indigo-200;
         }
-        
-        .fade-in {
-            animation: fadeIn 0.5s ease-in-out;
+
+        .table-row-hover {
+            @apply transition-all duration-200 hover:bg-gray-50 hover:shadow-md;
         }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+
+        .empty-state {
+            @apply flex flex-col items-center justify-center py-10 text-center;
         }
-        
-        .animate-pop {
-            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+        .swal2-popup {
+            @apply rounded-xl shadow-2xl border border-gray-200 p-6 bg-white;
         }
-        
-        @keyframes popIn {
-            0% { transform: scale(0.95); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
+
+        .swal2-title {
+            @apply text-xl font-bold text-gray-800 mb-4;
+        }
+
+        .swal2-html-container {
+            @apply text-gray-600 text-base leading-relaxed;
+        }
+
+        .swal2-icon {
+            @apply w-20 h-20 m-auto mb-4;
+        }
+
+        .swal2-success .swal2-timer-progress-bar {
+            @apply bg-gradient-to-r from-green-400 to-green-600 h-1 rounded-b;
+        }
+
+        .swal2-error .swal2-timer-progress-bar {
+            @apply bg-gradient-to-r from-red-400 to-red-600 h-1 rounded-b;
         }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <div class="container mx-auto px-4 py-8 max-w-6xl">
+<body class="min-h-screen bg-gray-50">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
         <!-- Header Section -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 animate-pop">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-800">Detail Pertemuan - {{ $schedule->classroom->full_name }}</h1>
-                <p class="text-gray-600 mt-1">Mata Pelajaran: {{ $schedule->subject->name }} | Guru: {{ $schedule->teacher->name }} | Hari: {{ $schedule->day }} | Waktu: {{ $schedule->start_time }} - {{ $schedule->end_time }}</p>
+        <div class="card mb-8">
+            <div class="card-header">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-indigo-100 rounded-full">
+                        <i class="fas fa-calendar-day text-indigo-700 text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Detail Pertemuan - {{ $schedule->classroom->full_name }}</h1>
+                        <p class="text-gray-600 mt-1 text-sm">
+                            Mata Pelajaran: {{ $schedule->subject->name }} | 
+                            Guru: {{ $schedule->teacher->user->name }} | 
+                            Hari: {{ $schedule->day }} | 
+                            Waktu: {{ \Carbon\Carbon::parse($schedule->start_time)->format('H:i') }} - {{ \Carbon\Carbon::parse($schedule->end_time)->format('H:i') }}
+                        </p>
+                    </div>
+                </div>
             </div>
-            <a href="{{ route('admin.schedules.index') }}" 
-               class="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition duration-200">
-                <i class="fas fa-arrow-left"></i>
-                <span>Kembali</span>
-            </a>
         </div>
 
         <!-- Form Ubah Tanggal Pertemuan Pertama -->
-        <div class="form-container bg-white p-6 rounded-xl shadow-sm border border-gray-200 card fade-in">
-            <form action="{{ route('admin.schedules.update_first_session', $schedule) }}" method="POST">
-                @csrf
-                @method('PATCH')
-                <div class="flex flex-col sm:flex-row items-start sm:items-end gap-4">
-                    <div class="w-full sm:w-auto">
-                        <label for="first_session_date" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Pertemuan Pertama</label>
-                        <input type="date" name="first_session_date" id="first_session_date" 
-                               value="{{ $classSessions->first() ? $classSessions->first()->date : '' }}"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+        <div class="card mb-8">
+            <div class="p-6">
+                <form action="{{ route('admin.schedules.update_first_session', $schedule) }}" method="POST">
+                    @csrf
+                    @method('POST') <!-- Sesuaikan dengan metode di controller -->
+                    <div class="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+                        <div class="w-full sm:w-auto">
+                            <label for="first_session_date" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Pertemuan Pertama</label>
+                            <input type="date" name="first_session_date" id="first_session_date" 
+                                   value="{{ $classSessions->first() ? $classSessions->first()->date : \Carbon\Carbon::today()->toDateString() }}"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200">
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save mr-2"></i> Ubah Tanggal
+                        </button>
                     </div>
-                    <button type="submit" class="btn-submit bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-lg mt-2 sm:mt-0">
-                        Ubah Tanggal
-                    </button>
-                </div>
-                @error('first_session_date')
-                    <p class="text-red-600 text-sm mt-2">{{ $message }}</p>
-                @enderror
-            </form>
+                    @error('first_session_date')
+                        <p class="text-red-600 text-sm mt-2">{{ $message }}</p>
+                    @enderror
+                </form>
+            </div>
         </div>
 
         <!-- Table Section -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden card fade-in mt-6">
+        <div class="card">
             <div class="overflow-x-auto">
                 <table class="w-full">
                     <thead class="bg-gray-50">
@@ -201,19 +129,19 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
-                        @forelse ($classSessions as $session)
+                        @forelse ($classSessions as $index => $session)
                             <tr class="table-row-hover">
-                                <td class="py-4 px-6 whitespace-nowrap text-gray-600 font-medium">Pertemuan {{ $session->meeting_number }}</td>
+                                <td class="py-4 px-6 whitespace-nowrap text-gray-600 font-medium">Pertemuan {{ $index + 1 }}</td>
                                 <td class="py-4 px-6 text-gray-600">{{ $session->day_of_week }}</td>
                                 <td class="py-4 px-6 text-gray-600">{{ \Carbon\Carbon::parse($session->date)->translatedFormat('d F Y') }}</td>
-                                <td class="py-4 px-6 text-gray-600">{{ $session->start_time->format('H:i') }} - {{ $session->end_time->format('H:i') }}</td>
+                                <td class="py-4 px-6 text-gray-600">{{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }} - {{ \Carbon\Carbon::parse($session->end_time)->format('H:i') }}</td>
                                 <td class="py-4 px-6 whitespace-nowrap text-sm font-medium">
                                     <form action="{{ route('admin.schedules.delete_session', [$schedule, $session]) }}" 
                                           method="POST" class="inline-block"
                                           onsubmit="return confirmDelete(event)">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:text-red-700 transition-colors duration-200"
+                                        <button type="submit" class="btn-icon text-red-600 hover:text-red-700"
                                                 title="Hapus Pertemuan">
                                             <i class="fas fa-trash"></i>
                                         </button>
@@ -222,14 +150,22 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="py-8 px-6 text-center text-gray-500">
-                                    Tidak ada pertemuan untuk jadwal ini.
+                                <td colspan="5" class="empty-state">
+                                    <i class="far fa-calendar-times text-5xl text-gray-300 mb-4"></i>
+                                    <p class="text-gray-500 text-lg">Tidak ada pertemuan untuk jadwal ini.</p>
                                 </td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
+        </div>
+
+        <!-- Back Button -->
+        <div class="mt-6 flex justify-end">
+            <a href="{{ route('admin.schedules.index') }}" class="btn-secondary">
+                <i class="fas fa-arrow-left mr-2"></i> Kembali
+            </a>
         </div>
     </div>
 
@@ -241,20 +177,15 @@
                     title: 'Berhasil!',
                     text: '{{ session('success') }}',
                     confirmButtonText: 'OK',
-                    showClass: {
-                        popup: 'animate__animated animate__fadeInDown animate__faster'
-                    },
-                    hideClass: {
-                        popup: 'animate__animated animate__fadeOutUp animate__faster'
-                    },
+                    confirmButtonColor: '#2563eb',
                     background: '#ffffff',
-                    color: '#1f2937',
-                    confirmButtonColor: '#3b82f6',
+                    showClass: { popup: 'animate__animated animate__fadeInDown' },
+                    hideClass: { popup: 'animate__animated animate__fadeOutUp' },
                     timer: 4000,
                     timerProgressBar: true,
                     didOpen: (toast) => {
-                        toast.addEventListener('mouseenter', Swal.stopTimer)
-                        toast.addEventListener('mouseleave', Swal.resumeTimer)
+                        toast.addEventListener('mouseenter', Swal.stopTimer);
+                        toast.addEventListener('mouseleave', Swal.resumeTimer);
                     }
                 });
             @endif
@@ -265,29 +196,24 @@
                     title: 'Gagal!',
                     text: '{{ session('error') }}',
                     confirmButtonText: 'OK',
-                    showClass: {
-                        popup: 'animate__animated animate__shakeX animate__faster'
-                    },
-                    hideClass: {
-                        popup: 'animate__animated animate__fadeOutUp animate__faster'
-                    },
+                    confirmButtonColor: '#dc2626',
                     background: '#ffffff',
-                    color: '#1f2937',
-                    confirmButtonColor: '#ef4444',
+                    showClass: { popup: 'animate__animated animate__shakeX' },
+                    hideClass: { popup: 'animate__animated animate__fadeOutUp' },
                     timer: 5000,
                     timerProgressBar: true,
                     didOpen: (toast) => {
-                        toast.addEventListener('mouseenter', Swal.stopTimer)
-                        toast.addEventListener('mouseleave', Swal.resumeTimer)
+                        toast.addEventListener('mouseenter', Swal.stopTimer);
+                        toast.addEventListener('mouseleave', Swal.resumeTimer);
                     }
                 });
             @endif
         });
-        
+
         function confirmDelete(event) {
             event.preventDefault();
             const form = event.target;
-            
+
             Swal.fire({
                 title: 'Konfirmasi Hapus',
                 text: 'Apakah Anda yakin ingin menghapus pertemuan ini dan semua pertemuan berikutnya?',
@@ -297,17 +223,14 @@
                 cancelButtonColor: '#6b7280',
                 confirmButtonText: 'Ya, Hapus!',
                 cancelButtonText: 'Batal',
-                showClass: {
-                    popup: 'animate__animated animate__fadeInDown animate__faster'
-                },
+                reverseButtons: true,
                 customClass: {
-                    popup: 'rounded-xl',
-                    title: 'text-xl font-bold',
-                    content: 'text-gray-600',
-                    confirmButton: 'px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition',
-                    cancelButton: 'px-5 py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition'
-                },
-                reverseButtons: true
+                    popup: 'swal2-popup',
+                    title: 'swal2-title',
+                    content: 'swal2-html-container',
+                    confirmButton: 'btn-primary',
+                    cancelButton: 'btn-secondary'
+                }
             }).then((result) => {
                 if (result.isConfirmed) {
                     form.submit();
