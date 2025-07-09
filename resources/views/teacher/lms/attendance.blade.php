@@ -17,7 +17,7 @@
 
         <!-- Tombol Kembali -->
         <div class="mb-6">
-            <a href="{{ route('teacher.lms.show_session', $classSession) }}"
+            <a href="{{ route('teacher.lms.class_schedules', $classSession->classroom_id) }}"
                class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                 <i class="fas fa-arrow-left mr-2"></i> Kembali ke Sesi
             </a>

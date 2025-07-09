@@ -3,15 +3,15 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
-use App\Models\ClassSession;
 use App\Models\Assignment;
+use App\Models\ClassSession;
 use App\Models\Material;
 use App\Models\Schedule;
-use App\Models\Subject;
-use Illuminate\Support\Facades\Log;
 use App\Models\Submission;
+use App\Models\Subject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
@@ -28,7 +28,52 @@ class StudentLmsController extends Controller
             ->pluck('subject')
             ->filter();
 
-        return view('student.lms.index', compact('subjects'));
+        // Kumpulkan aktivitas terkini
+        $recentActivities = collect();
+
+        // Aktivitas dari pengumpulan tugas (Submissions)
+        $submissions = Submission::where('student_id', $student->id)
+            ->with(['assignment.schedule.subject'])
+            ->orderBy('created_at', 'desc')
+            ->take(5)
+            ->get()
+            ->map(function ($submission) {
+                return [
+                    'type' => 'task_completed',
+                    'description' => 'Anda menyelesaikan tugas <span class="font-semibold">' . ($submission->assignment->title ?? 'Tugas Tanpa Nama') . '</span> untuk mata pelajaran <span class="font-semibold">' . ($submission->assignment->schedule->subject->name ?? 'Unknown') . '</span>',
+                    'created_at' => $submission->created_at,
+                ];
+            });
+
+        // Aktivitas dari materi yang diakses (misalnya, dari log atau riwayat akses)
+        // Catatan: Karena controller tidak mencatat akses materi, kita asumsikan logika serupa
+        $materials = Material::join('schedules', 'materials.schedule_id', '=', 'schedules.id')
+            ->where('schedules.classroom_id', $student->classroom_id)
+            ->select('materials.*')
+            ->orderBy('materials.created_at', 'desc')
+            ->take(5)
+            ->get()
+            ->map(function ($material) {
+                return [
+                    'type' => 'material_viewed',
+                    'description' => 'Materi baru tersedia: <span class="font-semibold">' . ($material->title ?? 'Materi Tanpa Nama') . '</span> untuk mata pelajaran <span class="font-semibold">' . ($material->schedule->subject->name ?? 'Unknown') . '</span>',
+                    'created_at' => $material->created_at,
+                ];
+            });
+
+        // Gabungkan dan urutkan aktivitas berdasarkan created_at
+        $recentActivities = $submissions->merge($materials)
+            ->sortByDesc('created_at')
+            ->take(5)
+            ->values();
+
+        Log::info('Showing student dashboard', [
+            'user_id' => Auth::id(),
+            'subjects_count' => $subjects->count(),
+            'activities_count' => $recentActivities->count(),
+        ]);
+
+        return view('student.lms.index', compact('subjects', 'recentActivities'));
     }
 
     public function subjectSessions(Subject $subject)
@@ -55,7 +100,6 @@ class StudentLmsController extends Controller
             return Carbon::parse($session->date)->gt($endOfWeek);
         });
 
-        // Fetch materials and assignments via schedules
         $materials = Material::join('schedules', 'materials.schedule_id', '=', 'schedules.id')
             ->where('schedules.classroom_id', $student->classroom_id)
             ->where('schedules.subject_id', $subject->id)
@@ -71,7 +115,6 @@ class StudentLmsController extends Controller
             }])
             ->get();
 
-        // Get teacher from the first available session, if any
         $teacherName = $classSessions->first() ? ($classSessions->first()->teacher->user->name ?? 'Belum ada guru') : 'Belum ada guru';
 
         Log::info('Showing subject sessions', [
@@ -205,16 +248,50 @@ class StudentLmsController extends Controller
 
     public function createSubmission(Assignment $assignment)
     {
+        Log::info('Accessing create submission page', [
+            'assignment_id' => $assignment->id,
+            'schedule_id' => $assignment->schedule_id,
+            'user_id' => Auth::id(),
+        ]);
+
         $this->authorizeStudentAssignment($assignment);
+
+        $subject_id = $assignment->schedule ? $assignment->schedule->subject_id : null;
+        if (!$subject_id) {
+            Log::warning('Assignment missing schedule or subject_id', [
+                'assignment_id' => $assignment->id,
+                'schedule_id' => $assignment->schedule_id,
+            ]);
+            return redirect()->route('lms.index')
+                ->with('error', 'Tidak dapat mengakses tugas: Mata pelajaran tidak ditemukan.');
+        }
+
         $existingSubmission = Submission::where('assignment_id', $assignment->id)
             ->where('student_id', Auth::user()->student->id)
             ->first();
-        return view('student.lms.create_submission', compact('assignment', 'existingSubmission'));
+
+        return view('student.lms.create_submission', compact('assignment', 'existingSubmission', 'subject_id'));
     }
 
     public function storeSubmission(Request $request, Assignment $assignment)
     {
+        Log::info('Attempting to store submission', [
+            'assignment_id' => $assignment->id,
+            'user_id' => Auth::id(),
+        ]);
+
         $this->authorizeStudentAssignment($assignment);
+
+        $subject_id = $assignment->schedule ? $assignment->schedule->subject_id : null;
+        if (!$subject_id) {
+            Log::warning('Assignment missing schedule or subject_id', [
+                'assignment_id' => $assignment->id,
+                'schedule_id' => $assignment->schedule_id,
+            ]);
+            return redirect()->route('lms.index')
+                ->with('error', 'Tidak dapat mengumpulkan tugas: Mata pelajaran tidak ditemukan.');
+        }
+
         $request->validate([
             'file' => 'nullable|file|mimes:pdf,doc,docx|max:2048',
             'notes' => 'nullable|string|max:500',
@@ -226,10 +303,18 @@ class StudentLmsController extends Controller
             ->first();
 
         if ($existingSubmission) {
+            Log::warning('Submission already exists', [
+                'assignment_id' => $assignment->id,
+                'student_id' => $student->id,
+            ]);
             return back()->withErrors(['file' => 'Anda sudah mengumpulkan tugas ini.']);
         }
 
         if ($assignment->deadline < now()) {
+            Log::warning('Submission deadline passed', [
+                'assignment_id' => $assignment->id,
+                'deadline' => $assignment->deadline,
+            ]);
             return back()->withErrors(['deadline' => 'Tenggat waktu pengumpulan telah lewat.']);
         }
 
@@ -241,21 +326,30 @@ class StudentLmsController extends Controller
 
         if ($request->hasFile('file')) {
             $data['file_path'] = $request->file('file')->store('submissions', 'public');
+            Log::info('File uploaded', [
+                'assignment_id' => $assignment->id,
+                'file_path' => $data['file_path'],
+            ]);
         }
 
         Submission::create($data);
 
-        $classSession = ClassSession::where('classroom_id', $student->classroom_id)
-            ->where('subject_id', $assignment->subject_id)
-            ->first();
+        Log::info('Submission created successfully', [
+            'assignment_id' => $assignment->id,
+            'student_id' => $student->id,
+        ]);
 
-        return redirect()->route('lms.show_session', $classSession ? $classSession->id : 1)
+        return redirect()->route('lms.show_assignment', [$subject_id, $assignment->id])
             ->with('success', 'Tugas berhasil dikumpulkan.');
     }
 
     protected function authorizeStudent(ClassSession $classSession)
     {
         if ($classSession->classroom_id !== Auth::user()->student->classroom_id) {
+            Log::warning('Authorization failed for class session', [
+                'class_session_id' => $classSession->id,
+                'student_classroom_id' => Auth::user()->student->classroom_id,
+            ]);
             abort(403, 'Unauthorized');
         }
     }
@@ -263,13 +357,29 @@ class StudentLmsController extends Controller
     protected function authorizeStudentAssignment(Assignment $assignment)
     {
         $student = Auth::user()->student;
+
+        Log::info('Authorizing student assignment', [
+            'assignment_id' => $assignment->id,
+            'schedule_id' => $assignment->schedule_id,
+            'student_classroom_id' => $student->classroom_id,
+        ]);
+
         $schedule = Schedule::where('id', $assignment->schedule_id)
             ->where('classroom_id', $student->classroom_id)
-            ->where('subject_id', $assignment->subject_id)
             ->first();
 
         if (!$schedule) {
-            abort(403, 'Unauthorized');
+            $classSession = ClassSession::where('classroom_id', $student->classroom_id)
+                ->where('subject_id', $assignment->schedule->subject_id)
+                ->first();
+
+            if (!$classSession) {
+                Log::warning('Authorization failed: No matching schedule or class session', [
+                    'assignment_id' => $assignment->id,
+                    'student_classroom_id' => $student->classroom_id,
+                ]);
+                abort(403, 'Unauthorized: You do not have access to this assignment.');
+            }
         }
     }
 }

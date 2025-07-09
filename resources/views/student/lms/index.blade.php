@@ -3,45 +3,141 @@
 @section('title', 'Dashboard LMS Siswa')
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
+<div class="min-h-screen bg-gray-50">
     <!-- Header Section -->
-    <div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Dashboard LMS Siswa</h1>
-            <p class="text-sm md:text-base text-gray-600 mt-1 md:mt-2">Selamat datang di Learning Management System</p>
-            <div class="mt-2 flex items-center text-gray-600">
-                <i class="fas fa-calendar-day mr-2"></i>
+    <div class="bg-indigo-700 text-white py-8 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div>
+                    <h1 class="text-3xl md:text-4xl font-bold mb-2">Selamat Belajar!</h1>
+                    <p class="text-indigo-100 text-lg">Akses semua materi pembelajaran Anda di sini</p>
+                    <div class="mt-4 flex items-center text-indigo-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span id="current-date" class="text-sm md:text-base"></span>
+                    </div>
+                </div>
+                <a href="{{ route('student.dashboard') }}" 
+                   class="flex items-center gap-2 px-4 py-2 bg-white text-indigo-700 rounded-lg shadow hover:bg-indigo-50 transition"
+                   aria-label="Kembali ke dashboard siswa">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    <span>Kembali</span>
+                </a>
             </div>
         </div>
-        <a href="{{ route('student.dashboard') }}" 
-           class="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition"
-           aria-label="Kembali ke dashboard siswa">
-            <i class="fas fa-arrow-left"></i>
-            <span>Kembali</span>
-        </a>
     </div>
 
-    <!-- Subjects List -->
-    <div class="mb-12">
-        <h2 class="text-xl md:text-2xl font-semibold text-gray-800 mb-4">Daftar Mata Pelajaran</h2>
-        @if ($subjects->isEmpty())
-            <div class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded text-sm md:text-base">
-                <p>Tidak ada mata pelajaran tersedia.</p>
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Subjects List -->
+        <div class="mb-12">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Mata Pelajaran Anda</h2>
+                <div class="relative w-64 hidden md:block">
+                    <input type="text" placeholder="Cari mata pelajaran..." 
+                           class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
             </div>
-        @else
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                @foreach ($subjects as $subject)
-                    <a href="{{ route('lms.subject_sessions', $subject->id) }}"
-                       class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition feature-card flex items-center"
-                       aria-label="Lihat pertemuan untuk {{ $subject->name }}">
-                        <div class="bg-blue-100 p-2 rounded-full mr-3">
-                            <i class="fas fa-book text-blue-600 text-lg"></i>
+
+            @if ($subjects->isEmpty())
+                <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 rounded">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9z" clip-rule="evenodd" />
+                            </svg>
                         </div>
-                        <h3 class="text-lg font-medium text-gray-900">{{ $subject->name }}</h3>
-                    </a>
-                @endforeach
+                        <div class="ml-3">
+                            <p class="text-sm">Tidak ada mata pelajaran yang tersedia saat ini.</p>
+                        </div>
+                    </div>
+                </div>
+            @else
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    @foreach ($subjects as $subject)
+                        <a href="{{ route('lms.subject_sessions', $subject->id) }}"
+                           class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition duration-300 transform hover:-translate-y-1 feature-card">
+                            <div class="p-6">
+                                <div class="flex items-center mb-4">
+                                    <div class="p-3 rounded-full bg-indigo-100 text-indigo-600 mr-4">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                        </svg>
+                                    </div>
+                                    <h3 class="text-lg font-semibold text-gray-900">{{ $subject->name }}</h3>
+                                </div>
+                                <div class="flex justify-between items-center text-sm text-gray-500">
+                                    <span>12 Pertemuan</span>
+                                    <span class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                        Lihat
+                                    </span>
+                                </div>
+                            </div>
+                        </a>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+
+        <!-- Recent Activity Section -->
+        <div class="mb-12">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Aktivitas Terkini</h2>
+            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="p-6">
+                    @if ($recentActivities->isEmpty())
+                        <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 rounded">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm">Tidak ada aktivitas terkini saat ini.</p>
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        <div class="space-y-4">
+                            @foreach ($recentActivities as $activity)
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0 h-10 w-10 rounded-full 
+                                        {{ $activity['type'] == 'task_completed' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600' }} 
+                                        flex items-center justify-center mr-4">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            @if ($activity['type'] == 'task_completed')
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            @else
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                            @endif
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-800">{!! $activity['description'] !!}</p>
+                                        <p class="text-sm text-gray-500">{{ \Carbon\Carbon::parse($activity['created_at'])->diffForHumans() }}</p>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
             </div>
-        @endif
+        </div>
     </div>
 </div>
+
+<script>
+    // Display current date
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('current-date').textContent = new Date().toLocaleDateString('id-ID', options);
+</script>
 @endsection

@@ -6,6 +6,8 @@
     <title>@yield('title', 'Dashboard LMS Siswa')</title>
     
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link rel="stylesheet" href="{{ asset('css/sweetalert2.min.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body class="bg-gray-50 font-sans antialiased">
     <div class="min-h-screen flex flex-col">
@@ -15,11 +17,7 @@
             @yield('content')
         </main>
         
-        <footer class="bg-white border-t py-4 mt-8">
-            <div class="container mx-auto px-4 text-center text-gray-500 text-sm">
-                &copy; {{ date('Y') }} LMS Sekolah. All rights reserved.
-            </div>
-        </footer>
+      
     </div>
 </body>
 </html>

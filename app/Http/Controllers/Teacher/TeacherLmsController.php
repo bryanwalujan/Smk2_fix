@@ -199,7 +199,7 @@ class TeacherLmsController extends Controller
                     ->get()->toArray(),
             ]);
             return redirect()->route('teacher.lms.index')
-                ->with('error', 'Jadwal tidak ditemukan untuk sesi kelas ini.');
+                ->with('error', 'Jadwal tidak ditemukan di tabel schedules.');
         }
 
         // Ambil materials dan assignments berdasarkan schedule_id
@@ -298,7 +298,8 @@ class TeacherLmsController extends Controller
             }
         }
 
-        return redirect()->route('teacher.lms.show_session', $classSession)->with('success', 'Materi dan tugas berhasil ditambahkan.');
+        return redirect()->route('teacher.lms.class_schedules', $classSession->classroom_id)
+            ->with('success', 'Materi dan tugas berhasil ditambahkan.');
     }
 
     public function showMaterial(ClassSession $classSession, Material $material)
@@ -329,7 +330,8 @@ class TeacherLmsController extends Controller
             $data['file_path'] = $request->file('file')->store('materials', 'public');
         }
         $material->update($data);
-        return redirect()->route('teacher.lms.show_session', $classSession)->with('success', 'Materi berhasil diperbarui.');
+        return redirect()->route('teacher.lms.class_schedules', $classSession->classroom_id)
+            ->with('success', 'Materi berhasil diperbarui.');
     }
 
     public function destroyMaterial(ClassSession $classSession, Material $material)
@@ -339,7 +341,8 @@ class TeacherLmsController extends Controller
             Storage::disk('public')->delete($material->file_path);
         }
         $material->delete();
-        return redirect()->route('teacher.lms.show_session', $classSession)->with('success', 'Materi berhasil dihapus.');
+        return redirect()->route('teacher.lms.class_schedules', $classSession->classroom_id)
+            ->with('success', 'Materi berhasil dihapus.');
     }
 
     public function createAssignment(ClassSession $classSession)
@@ -355,6 +358,7 @@ class TeacherLmsController extends Controller
             'title' => 'required|string|max:100',
             'description' => 'nullable|string',
             'deadline' => 'required|date|after:now',
+            'file' => 'nullable|file|mimes:pdf,doc,docx,ppt,pptx,jpg,jpeg,png|max:262144',
         ]);
 
         // Cari schedule berdasarkan atribut
@@ -379,56 +383,58 @@ class TeacherLmsController extends Controller
             return redirect()->route('teacher.lms.index')->with('error', 'Jadwal tidak ditemukan di tabel schedules.');
         }
 
-        Assignment::create([
+        $assignmentData = [
             'schedule_id' => $schedule->id,
             'title' => $request->title,
             'description' => $request->description,
             'deadline' => $request->deadline,
-        ]);
+        ];
 
-        return redirect()->route('teacher.lms.show_session', $classSession)->with('success', 'Tugas berhasil ditambahkan.');
+        if ($request->hasFile('file')) {
+            $assignmentData['file_path'] = $request->file('file')->store('assignments', 'public');
+        }
+
+        Assignment::create($assignmentData);
+
+        return redirect()->route('teacher.lms.class_schedules', $classSession->classroom_id)
+            ->with('success', 'Tugas berhasil ditambahkan.');
     }
 
-    public function showAssignment(Assignment $assignment)
+    public function showAssignment(ClassSession $classSession, Assignment $assignment)
     {
-        $schedule = Schedule::find($assignment->schedule_id);
+        // Otorisasi guru untuk classSession
+        $this->authorizeTeacher($classSession);
 
-        Log::info('Show Assignment', [
-            'assignment_id' => $assignment->id,
-            'schedule_id' => $assignment->schedule_id,
-        ]);
+        // Pastikan assignment terkait dengan schedule yang sesuai dengan classSession
+        $schedule = Schedule::where('teacher_id', $classSession->teacher_id)
+            ->where('classroom_id', $classSession->classroom_id)
+            ->where('subject_id', $classSession->subject_id)
+            ->where('day', $classSession->day_of_week)
+            ->whereRaw('TIME_FORMAT(start_time, "%H:%i") = TIME_FORMAT(?, "%H:%i")', [$classSession->start_time])
+            ->whereRaw('TIME_FORMAT(end_time, "%H:%i") = TIME_FORMAT(?, "%H:%i")', [$classSession->end_time])
+            ->first();
 
-        if (!$schedule) {
-            Log::warning('Schedule not found for assignment', [
+        if (!$schedule || $assignment->schedule_id !== $schedule->id) {
+            Log::warning('Invalid assignment or schedule for class session', [
+                'class_session_id' => $classSession->id,
                 'assignment_id' => $assignment->id,
                 'schedule_id' => $assignment->schedule_id,
             ]);
             return redirect()->route('teacher.lms.index')
-                ->with('error', 'Jadwal tidak ditemukan untuk tugas ini.');
+                ->with('error', 'Tugas atau jadwal tidak valid untuk sesi kelas ini.');
         }
 
-        $classSession = ClassSession::where('teacher_id', $schedule->teacher_id)
-            ->where('classroom_id', $schedule->classroom_id)
-            ->where('subject_id', $schedule->subject_id)
-            ->where('day_of_week', $schedule->day)
-            ->whereRaw('TIME_FORMAT(start_time, "%H:%i") = TIME_FORMAT(?, "%H:%i")', [$schedule->start_time])
-            ->whereRaw('TIME_FORMAT(end_time, "%H:%i") = TIME_FORMAT(?, "%H:%i")', [$schedule->end_time])
-            ->first();
-
-        if (!$classSession) {
-            Log::warning('ClassSession not found for schedule', [
-                'assignment_id' => $assignment->id,
-                'schedule_id' => $schedule->id,
-            ]);
-            return redirect()->route('teacher.lms.index')
-                ->with('error', 'Sesi kelas tidak ditemukan untuk tugas ini.');
-        }
-
-        $this->authorizeTeacher($classSession);
-
+        // Muat data submissions
         $assignment->load(['submissions.student.user', 'submissions.student.classroom']);
 
-        return view('teacher.lms.show_assignment', compact('assignment', 'classSession'));
+        Log::info('Show Assignment', [
+            'class_session_id' => $classSession->id,
+            'assignment_id' => $assignment->id,
+            'schedule_id' => $schedule->id,
+            'submissions_count' => $assignment->submissions->count(),
+        ]);
+
+        return view('teacher.lms.show_assignment', compact('classSession', 'assignment'));
     }
 
     public function editAssignment(ClassSession $classSession, Assignment $assignment)
@@ -444,20 +450,36 @@ class TeacherLmsController extends Controller
             'title' => 'required|string|max:100',
             'description' => 'nullable|string',
             'deadline' => 'required|date',
+            'file' => 'nullable|file|mimes:pdf,doc,docx,ppt,pptx,jpg,jpeg,png|max:262144',
         ]);
-        $assignment->update([
+
+        $assignmentData = [
             'title' => $request->title,
             'description' => $request->description,
             'deadline' => $request->deadline,
-        ]);
-        return redirect()->route('teacher.lms.show_session', $classSession)->with('success', 'Tugas berhasil diperbarui.');
+        ];
+
+        if ($request->hasFile('file')) {
+            if ($assignment->file_path) {
+                Storage::disk('public')->delete($assignment->file_path);
+            }
+            $assignmentData['file_path'] = $request->file('file')->store('assignments', 'public');
+        }
+
+        $assignment->update($assignmentData);
+        return redirect()->route('teacher.lms.class_schedules', $classSession->classroom_id)
+            ->with('success', 'Tugas berhasil diperbarui.');
     }
 
     public function destroyAssignment(ClassSession $classSession, Assignment $assignment)
     {
         $this->authorizeTeacher($classSession);
+        if ($assignment->file_path) {
+            Storage::disk('public')->delete($assignment->file_path);
+        }
         $assignment->delete();
-        return redirect()->route('teacher.lms.show_session', $classSession)->with('success', 'Tugas berhasil dihapus.');
+        return redirect()->route('teacher.lms.class_schedules', $classSession->classroom_id)
+            ->with('success', 'Tugas berhasil dihapus.');
     }
 
     public function showSubmissions(Assignment $assignment)
@@ -690,7 +712,7 @@ class TeacherLmsController extends Controller
         $classroomName = $classSession->classroom->full_name ?? 'Unknown';
         $fileName = 'Nilai_Kelas_' . str_replace(' ', '_', $classroomName) . '.xlsx';
 
-        return Excel::download(new \App\Exports\ClassSubmissionsExport($classSession), $fileName);
+        return Excel::download(new ClassSubmissionsExport($classSession), $fileName);
     }
 
     public function exportClassAttendance($classroom_id)
@@ -743,4 +765,9 @@ class TeacherLmsController extends Controller
             abort(403, 'Unauthorized');
         }
     }
+    public function clearFlash(Request $request)
+{
+    session()->forget('success');
+    return response()->json(['status' => 'success']);
+}
 }

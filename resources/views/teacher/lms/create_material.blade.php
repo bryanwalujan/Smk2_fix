@@ -8,7 +8,7 @@
         <div>
             <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Tambah Materi dan Tugas</h1>
             <div class="flex items-center text-sm text-gray-600 mt-1">
-                <a href="{{ route('teacher.lms.show_session', $classSession) }}" class="text-blue-600 hover:text-blue-800 flex items-center transition-colors">
+                <a href="{{ route('teacher.lms.class_schedules', $classSession->classroom_id) }}" class="text-blue-600 hover:text-blue-800 flex items-center transition-colors">
                     <i class="fas fa-arrow-left mr-2"></i>
                     Kembali ke Sesi Kelas
                 </a>

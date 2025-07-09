@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Teacher\TeacherLmsController;
 use App\Http\Controllers\Student\StudentLmsController;
+use App\Http\Controllers\Student\StudentDashboardController;
 use Illuminate\Support\Facades\Route;
 
 // Public Dashboard Route
@@ -22,6 +23,7 @@ Route::get('/', function () {
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+Route::get('/teacher/send-task-reminders', [TeacherController::class, 'sendTaskReminders']);
 
 // Admin Routes
 Route::middleware(['auth', 'spatie.role:admin'])->prefix('admin')->group(function () {
@@ -115,6 +117,7 @@ Route::middleware(['auth'])->group(function () {
         Route::prefix('teacher/lms')->middleware(['auth', 'role:teacher'])->group(function () {
             Route::get('/', [App\Http\Controllers\Teacher\TeacherLmsController::class, 'index'])->name('teacher.lms.index');
             Route::get('/class/{classroom_id}/schedules', [App\Http\Controllers\Teacher\TeacherLmsController::class, 'showClassSchedules'])->name('teacher.lms.class_schedules');
+            Route::post('/teacher/lms/clear-flash', [TeacherLmsController::class, 'clearFlash'])->name('teacher.lms.clear_flash');
 
         });
         Route::prefix('teacher/lms')->middleware(['auth', 'role:teacher'])->group(function () {
@@ -153,6 +156,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/lms/subjects/{subject}/assignments/{assignment}', [StudentLmsController::class, 'showAssignment'])->name('lms.show_assignment');
         Route::get('/lms/assignments/{assignment}/submission', [StudentLmsController::class, 'createSubmission'])->name('lms.create_submission');
         Route::post('/lms/assignments/{assignment}/submission', [StudentLmsController::class, 'storeSubmission'])->name('lms.store_submission');
+        Route::get('/student/dashboard', [StudentDashboardController::class, 'index'])->name('student.dashboard');
+       
     });
 });
 

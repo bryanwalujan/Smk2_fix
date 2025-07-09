@@ -1,6 +1,6 @@
 @extends('layouts.appstudent')
 
-@section('title', 'Pertemuan {{ $subject->name }}')
+@section('title', $subject->name . ' - Materi & Pertemuan')
 
 @section('content')
 <div class="container mx-auto px-4 py-8 max-w-7xl">
@@ -11,7 +11,7 @@
                 <div class="flex-1">
                     <h1 class="text-2xl md:text-3xl font-bold text-gray-800 flex items-center gap-2">
                         <i class="fas fa-book text-indigo-600"></i>
-                        Pertemuan {{ $subject->name }}
+                        {{ $subject->name }}
                     </h1>
                     <div class="flex flex-wrap gap-3 mt-3">
                         <div class="flex items-center text-sm text-gray-600">
@@ -25,7 +25,7 @@
                     </div>
                 </div>
                 <a href="{{ route('lms.index') }}" 
-                   class="btn-secondary flex items-center">
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
                     <i class="fas fa-arrow-left mr-2"></i> 
                     Kembali
                 </a>
@@ -36,28 +36,28 @@
     <!-- Grid Materi dan Tugas -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <!-- Kolom Materi -->
-        <div class="card-section">
-            <div class="card-header bg-gradient-to-r from-green-50 to-green-100 border-green-200">
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="px-6 py-4 border-b bg-gradient-to-r from-green-50 to-green-100 border-green-200 flex justify-between items-center">
                 <div class="flex items-center gap-3">
                     <div class="p-2 bg-green-100 rounded-lg">
                         <i class="fas fa-book-open text-green-700 text-xl"></i>
                     </div>
-                    <h2 class="section-title">Materi Pembelajaran</h2>
+                    <h2 class="text-xl font-semibold text-gray-800">Materi Pembelajaran</h2>
                 </div>
-                <span class="badge-green">
+                <span class="text-xs font-medium text-green-800 bg-green-100 px-2.5 py-1 rounded-full">
                     {{ $materials->count() }} Materi
                 </span>
             </div>
 
-            <div class="card-body">
+            <div class="p-6">
                 @if ($materials->isEmpty())
-                    <div class="empty-state py-8">
+                    <div class="flex flex-col items-center justify-center text-center py-8">
                         <i class="far fa-folder-open text-4xl text-gray-300 mb-3"></i>
                         <p class="text-gray-500">Belum ada materi pembelajaran</p>
                     </div>
                 @else
                     <div class="space-y-4">
-                        @foreach ($materials->take(3) as $material)
+                        @foreach ($materials->sortByDesc('created_at')->take(3) as $material)
                             <div class="border border-green-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                                 <h3 class="font-medium text-gray-800">{{ $material->title }}</h3>
                                 @if ($material->content)
@@ -70,7 +70,7 @@
                                         {{ $material->created_at->diffForHumans() }}
                                     </span>
                                     <a href="{{ route('lms.show_material', [$subject, $material]) }}" 
-                                       class="btn-action-primary text-sm">
+                                       class="inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
                                         <i class="fas fa-eye mr-1"></i> Lihat
                                     </a>
                                 </div>
@@ -79,7 +79,7 @@
                         @if ($materials->count() > 3)
                             <div class="text-center mt-4">
                                 <a href="{{ route('lms.subject_materials', $subject) }}" 
-                                   class="btn-action-outline">
+                                   class="inline-flex items-center justify-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                                     Lihat Semua Materi
                                 </a>
                             </div>
@@ -90,28 +90,28 @@
         </div>
 
         <!-- Kolom Tugas -->
-        <div class="card-section">
-            <div class="card-header bg-gradient-to-r from-amber-50 to-amber-100 border-amber-200">
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="px-6 py-4 border-b bg-gradient-to-r from-amber-50 to-amber-100 border-amber-200 flex justify-between items-center">
                 <div class="flex items-center gap-3">
                     <div class="p-2 bg-amber-100 rounded-lg">
                         <i class="fas fa-tasks text-amber-700 text-xl"></i>
                     </div>
-                    <h2 class="section-title">Tugas Terbaru</h2>
+                    <h2 class="text-xl font-semibold text-gray-800">Tugas Terbaru</h2>
                 </div>
-                <span class="badge-amber">
+                <span class="text-xs font-medium text-amber-800 bg-amber-100 px-2.5 py-1 rounded-full">
                     {{ $assignments->count() }} Tugas
                 </span>
             </div>
 
-            <div class="card-body">
+            <div class="p-6">
                 @if ($assignments->isEmpty())
-                    <div class="empty-state py-8">
+                    <div class="flex flex-col items-center justify-center text-center py-8">
                         <i class="far fa-clipboard text-4xl text-gray-300 mb-3"></i>
                         <p class="text-gray-500">Belum ada tugas</p>
                     </div>
                 @else
                     <div class="space-y-4">
-                        @foreach ($assignments->sortByDesc('deadline')->take(3) as $assignment)
+                        @foreach ($assignments->sortByDesc('created_at')->take(3) as $assignment)
                             <div class="border border-amber-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                                 <div class="flex justify-between items-start">
                                     <h3 class="font-medium text-gray-800">{{ $assignment->title }}</h3>
@@ -129,7 +129,7 @@
                                         {{ $assignment->created_at->diffForHumans() }}
                                     </span>
                                     <a href="{{ route('lms.show_assignment', [$subject, $assignment]) }}" 
-                                       class="btn-action-amber text-sm">
+                                       class="inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700">
                                         <i class="fas fa-eye mr-1"></i> Lihat
                                     </a>
                                 </div>
@@ -138,7 +138,7 @@
                         @if ($assignments->count() > 3)
                             <div class="text-center mt-4">
                                 <a href="{{ route('lms.subject_assignments', $subject) }}" 
-                                   class="btn-action-outline">
+                                   class="inline-flex items-center justify-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                                     Lihat Semua Tugas
                                 </a>
                             </div>
@@ -150,28 +150,28 @@
     </div>
 
     <!-- Pertemuan Minggu Ini -->
-    <div class="card-section mb-8">
-        <div class="card-header bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-200">
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+        <div class="px-6 py-4 border-b bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-200 flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <div class="p-2 bg-yellow-100 rounded-lg">
                     <i class="fas fa-calendar-week text-yellow-700 text-xl"></i>
                 </div>
-                <h2 class="section-title">Pertemuan Minggu Ini</h2>
+                <h2 class="text-xl font-semibold text-gray-800">Pertemuan Minggu Ini</h2>
             </div>
-            <span class="badge-yellow">
+            <span class="text-xs font-medium text-yellow-800 bg-yellow-100 px-2.5 py-1 rounded-full">
                 {{ $currentWeekSessions->count() }} Sesi
             </span>
         </div>
 
-        <div class="card-body">
+        <div class="p-6">
             @if ($currentWeekSessions->isEmpty())
-                <div class="empty-state py-8">
+                <div class="flex flex-col items-center justify-center text-center py-8">
                     <i class="far fa-calendar-plus text-4xl text-gray-300 mb-3"></i>
                     <p class="text-gray-500">Tidak ada pertemuan minggu ini</p>
                 </div>
             @else
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    @foreach ($currentWeekSessions as $session)
+                    @foreach ($currentWeekSessions->sortBy('date') as $session)
                         <div class="border border-yellow-200 rounded-lg p-5 hover:shadow-md transition-shadow bg-yellow-50">
                             <div class="flex items-center gap-3 mb-3">
                                 <div class="text-2xl font-bold text-yellow-600">
@@ -200,7 +200,7 @@
                             </div>
                             <div class="mt-4">
                                 <a href="{{ route('lms.show_session', $session) }}"
-                                   class="btn-action-primary w-full text-center">
+                                   class="inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 w-full text-center">
                                     <i class="fas fa-eye mr-1"></i> Lihat Sesi
                                 </a>
                             </div>
@@ -212,22 +212,22 @@
     </div>
 
     <!-- Pertemuan yang Akan Datang -->
-    <div class="card-section mb-8">
-        <div class="card-header bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+        <div class="px-6 py-4 border-b bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200 flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <div class="p-2 bg-blue-100 rounded-lg">
                     <i class="fas fa-calendar-plus text-blue-700 text-xl"></i>
                 </div>
-                <h2 class="section-title">Pertemuan yang Akan Datang</h2>
+                <h2 class="text-xl font-semibold text-gray-800">Pertemuan yang Akan Datang</h2>
             </div>
-            <span class="badge-blue">
+            <span class="text-xs font-medium text-blue-800 bg-blue-100 px-2.5 py-1 rounded-full">
                 {{ $upcomingSessions->count() }} Sesi
             </span>
         </div>
 
-        <div class="card-body">
+        <div class="p-6">
             @if ($upcomingSessions->isEmpty())
-                <div class="empty-state py-8">
+                <div class="flex flex-col items-center justify-center text-center py-8">
                     <i class="far fa-calendar text-4xl text-gray-300 mb-3"></i>
                     <p class="text-gray-500">Tidak ada pertemuan yang akan datang</p>
                 </div>
@@ -270,7 +270,7 @@
                                         </div>
                                         <div class="mt-4">
                                             <a href="{{ route('lms.show_session', $session) }}"
-                                               class="btn-action-primary w-full text-center">
+                                               class="inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 w-full text-center">
                                                 <i class="fas fa-eye mr-1"></i> Lihat Sesi
                                             </a>
                                         </div>
@@ -285,22 +285,22 @@
     </div>
 
     <!-- Pertemuan yang Sudah Lewat -->
-    <div class="card-section">
-        <div class="card-header bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200">
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="px-6 py-4 border-b bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200 flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <div class="p-2 bg-gray-100 rounded-lg">
                     <i class="fas fa-calendar-check text-gray-700 text-xl"></i>
                 </div>
-                <h2 class="section-title">Pertemuan yang Sudah Lewat</h2>
+                <h2 class="text-xl font-semibold text-gray-800">Pertemuan yang Sudah Lewat</h2>
             </div>
-            <span class="badge-gray">
+            <span class="text-xs font-medium text-gray-800 bg-gray-100 px-2.5 py-1 rounded-full">
                 {{ $pastSessions->count() }} Sesi
             </span>
         </div>
 
-        <div class="card-body">
+        <div class="p-6">
             @if ($pastSessions->isEmpty())
-                <div class="empty-state py-8">
+                <div class="flex flex-col items-center justify-center text-center py-8">
                     <i class="far fa-calendar-minus text-4xl text-gray-300 mb-3"></i>
                     <p class="text-gray-500">Tidak ada pertemuan yang sudah lewat</p>
                 </div>
@@ -343,7 +343,7 @@
                                         </div>
                                         <div class="mt-4">
                                             <a href="{{ route('lms.show_session', $session) }}"
-                                               class="btn-action-primary w-full text-center">
+                                               class="inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 w-full text-center">
                                                 <i class="fas fa-eye mr-1"></i> Lihat Sesi
                                             </a>
                                         </div>
@@ -358,52 +358,6 @@
     </div>
 </div>
 
-<style>
-    .card-section {
-        @apply bg-white rounded-xl shadow-lg overflow-hidden mb-8;
-    }
-    .card-header {
-        @apply px-6 py-4 border-b flex justify-between items-center;
-    }
-    .card-body {
-        @apply p-6;
-    }
-    .section-title {
-        @apply text-xl font-semibold text-gray-800;
-    }
-    .badge-green {
-        @apply text-xs font-medium text-green-800 bg-green-100 px-2.5 py-1 rounded-full;
-    }
-    .badge-amber {
-        @apply text-xs font-medium text-amber-800 bg-amber-100 px-2.5 py-1 rounded-full;
-    }
-    .badge-yellow {
-        @apply text-xs font-medium text-yellow-800 bg-yellow-100 px-2.5 py-1 rounded-full;
-    }
-    .badge-blue {
-        @apply text-xs font-medium text-blue-800 bg-blue-100 px-2.5 py-1 rounded-full;
-    }
-    .badge-gray {
-        @apply text-xs font-medium text-gray-800 bg-gray-100 px-2.5 py-1 rounded-full;
-    }
-    .btn-secondary {
-        @apply inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50;
-    }
-    .btn-action-primary {
-        @apply inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700;
-    }
-    .btn-action-amber {
-        @apply inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700;
-    }
-    .btn-action-outline {
-        @apply inline-flex items-center justify-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50;
-    }
-    .empty-state {
-        @apply flex flex-col items-center justify-center text-center;
-    }
-</style>
-
-<script src="{{ asset('js/sweetalert2.min.js') }}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         @if (session('success'))

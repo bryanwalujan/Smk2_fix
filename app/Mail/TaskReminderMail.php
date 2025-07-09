@@ -7,7 +7,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
-class AssignmentReminder extends Mailable
+class TaskReminderMail extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -20,7 +20,8 @@ class AssignmentReminder extends Mailable
 
     public function build()
     {
-        return $this->subject('Pengingat: Deadline Tugas Mendekati!')
-                    ->view('emails.assignment_reminder');
+        return $this->subject('Pengingat: Tugas "' . $this->assignment->title . '" Akan Berakhir')
+                    ->view('emails.task_reminder')
+                    ->with(['assignment' => $this->assignment]);
     }
 }

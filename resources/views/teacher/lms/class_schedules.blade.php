@@ -3,6 +3,9 @@
 @section('title', 'Jadwal Kelas {{ $classroom->full_name }}')
 
 @section('content')
+<!-- Include SweetAlert2 CSS -->
+
+
 <div class="container mx-auto px-4 py-8 max-w-7xl">
     <!-- Header Utama -->
     <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
@@ -48,6 +51,11 @@
                         <i class="fas fa-file-export mr-2"></i>
                         <span class="hidden md:inline">Unduh Absensi</span>
                     </a>
+                    <a href="{{ route('teacher.lms.show_attendance', $classSessions->first()) }}" 
+                       class="btn-action-primary">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        <span class="hidden md:inline">Kelola Absensi</span>
+                    </a>
                 </div>
             </div>
         </div>
@@ -91,12 +99,19 @@
                         @endif
                     </div>
                 @else
-                    <div class="space-y-4">
-                        @foreach ($materials as $material)
+                    <div class="space-y-4 materials-container">
+                        @php
+                            $sortedMaterials = $materials->sortByDesc('created_at')->take(3);
+                            $remainingMaterials = $materials->sortByDesc('created_at')->slice(3);
+                        @endphp
+                        @foreach ($sortedMaterials as $material)
                             <div class="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-all duration-200">
                                 <div class="flex flex-col sm:flex-row justify-between gap-4">
                                     <div class="flex-1">
                                         <h3 class="font-semibold text-gray-800 text-lg">{{ $material->title }}</h3>
+                                        <p class="mt-1 text-gray-500 text-sm">
+                                            Dibuat: {{ \Carbon\Carbon::parse($material->created_at)->translatedFormat('d F Y') }}
+                                        </p>
                                         @if ($material->content)
                                             <p class="mt-2 text-gray-600 text-sm line-clamp-2">
                                                 {{ \Illuminate\Support\Str::limit(strip_tags($material->content), 120) }}
@@ -118,12 +133,11 @@
                                            class="btn-icon text-blue-600 hover:bg-blue-50" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <form action="{{ route('teacher.lms.destroy_material', [$classSessions->isNotEmpty() ? $classSessions->first() : 0, $material]) }}" method="POST">
+                                        <form action="{{ route('teacher.lms.destroy_material', [$classSessions->isNotEmpty() ? $classSessions->first() : 0, $material]) }}" method="POST" class="delete-material-form">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn-icon text-red-600 hover:bg-red-50" 
-                                                    title="Hapus"
-                                                    onclick="return confirm('Apakah Anda yakin ingin menghapus materi ini?')">
+                                                    title="Hapus">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
@@ -131,6 +145,54 @@
                                 </div>
                             </div>
                         @endforeach
+                        @if ($materials->count() > 3)
+                            <div class="materials-hidden hidden space-y-4 mt-4">
+                                @foreach ($remainingMaterials as $material)
+                                    <div class="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-all duration-200">
+                                        <div class="flex flex-col sm:flex-row justify-between gap-4">
+                                            <div class="flex-1">
+                                                <h3 class="font-semibold text-gray-800 text-lg">{{ $material->title }}</h3>
+                                                <p class="mt-1 text-gray-500 text-sm">
+                                                    Dibuat: {{ \Carbon\Carbon::parse($material->created_at)->translatedFormat('d F Y') }}
+                                                </p>
+                                                @if ($material->content)
+                                                    <p class="mt-2 text-gray-600 text-sm line-clamp-2">
+                                                        {{ \Illuminate\Support\Str::limit(strip_tags($material->content), 120) }}
+                                                    </p>
+                                                @endif
+                                                @if ($material->file_path)
+                                                    <a href="{{ Storage::url($material->file_path) }}" target="_blank" 
+                                                       class="inline-flex items-center mt-3 text-green-700 hover:text-green-800 text-sm font-medium">
+                                                        <i class="fas fa-paperclip mr-2"></i> Lampiran Materi
+                                                    </a>
+                                                @endif
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <a href="{{ route('teacher.lms.show_material', [$classSessions->isNotEmpty() ? $classSessions->first() : 0, $material]) }}" 
+                                                   class="btn-icon text-green-600 hover:bg-green-50" title="Lihat">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="{{ route('teacher.lms.edit_material', [$classSessions->isNotEmpty() ? $classSessions->first() : 0, $material]) }}" 
+                                                   class="btn-icon text-blue-600 hover:bg-blue-50" title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <form action="{{ route('teacher.lms.destroy_material', [$classSessions->isNotEmpty() ? $classSessions->first() : 0, $material]) }}" method="POST" class="delete-material-form">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn-icon text-red-600 hover:bg-red-50" 
+                                                            title="Hapus">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                            <button class="btn-see-all-materials btn-action-primary mt-4 w-full text-center">
+                                Lihat Semua <i class="fas fa-chevron-down ml-2"></i>
+                            </button>
+                        @endif
                     </div>
                 @endif
             </div>
@@ -172,12 +234,19 @@
                         @endif
                     </div>
                 @else
-                    <div class="space-y-4">
-                        @foreach ($assignments as $assignment)
+                    <div class="space-y-4 assignments-container">
+                        @php
+                            $sortedAssignments = $assignments->sortByDesc('created_at')->take(3);
+                            $remainingAssignments = $assignments->sortByDesc('created_at')->slice(3);
+                        @endphp
+                        @foreach ($sortedAssignments as $assignment)
                             <div class="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-all duration-200">
                                 <div class="flex flex-col sm:flex-row justify-between gap-4">
                                     <div class="flex-1">
                                         <h3 class="font-semibold text-gray-800 text-lg">{{ $assignment->title }}</h3>
+                                        <p class="mt-1 text-gray-500 text-sm">
+                                            Dibuat: {{ \Carbon\Carbon::parse($assignment->created_at)->translatedFormat('d F Y') }}
+                                        </p>
                                         <div class="mt-2 text-sm text-amber-600 font-medium flex items-center gap-2">
                                             <i class="far fa-clock"></i>
                                             {{ \Carbon\Carbon::parse($assignment->deadline)->translatedFormat('d F Y, H:i') }}
@@ -202,12 +271,11 @@
                                                class="btn-icon text-blue-600 hover:bg-blue-50" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <form action="{{ route('teacher.lms.destroy_assignment', [$classSessions->isNotEmpty() ? $classSessions->first() : 0, $assignment]) }}" method="POST">
+                                            <form action="{{ route('teacher.lms.destroy_assignment', [$classSessions->isNotEmpty() ? $classSessions->first() : 0, $assignment]) }}" method="POST" class="delete-assignment-form">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn-icon text-red-600 hover:bg-red-50" 
-                                                        title="Hapus"
-                                                        onclick="return confirm('Apakah Anda yakin ingin menghapus tugas ini?')">
+                                                        title="Hapus">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </form>
@@ -226,6 +294,68 @@
                                 </div>
                             </div>
                         @endforeach
+                        @if ($assignments->count() > 3)
+                            <div class="assignments-hidden hidden space-y-4 mt-4">
+                                @foreach ($remainingAssignments as $assignment)
+                                    <div class="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-all duration-200">
+                                        <div class="flex flex-col sm:flex-row justify-between gap-4">
+                                            <div class="flex-1">
+                                                <h3 class="font-semibold text-gray-800 text-lg">{{ $assignment->title }}</h3>
+                                                <p class="mt-1 text-gray-500 text-sm">
+                                                    Dibuat: {{ \Carbon\Carbon::parse($assignment->created_at)->translatedFormat('d F Y') }}
+                                                </p>
+                                                <div class="mt-2 text-sm text-amber-600 font-medium flex items-center gap-2">
+                                                    <i class="far fa-clock"></i>
+                                                    {{ \Carbon\Carbon::parse($assignment->deadline)->translatedFormat('d F Y, H:i') }}
+                                                </div>
+                                                @if ($assignment->description)
+                                                    <p class="mt-2 text-gray-600 text-sm line-clamp-2">
+                                                        {{ \Illuminate\Support\Str::limit(strip_tags($assignment->description), 100) }}
+                                                    </p>
+                                                @endif
+                                            </div>
+                                            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                                                <div class="flex gap-2">
+                                                    <a href="{{ route('teacher.lms.show_submissions', $assignment) }}" 
+                                                       class="btn-icon text-amber-600 hover:bg-amber-50" title="Pengumpulan">
+                                                        <i class="fas fa-list-check"></i>
+                                                    </a>
+                                                    <a href="{{ route('teacher.lms.show_assignment', [$classSessions->isNotEmpty() ? $classSessions->first() : 0, $assignment]) }}" 
+                                                       class="btn-icon text-blue-600 hover:bg-blue-50" title="Lihat">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <a href="{{ route('teacher.lms.edit_assignment', [$classSessions->isNotEmpty() ? $classSessions->first() : 0, $assignment]) }}" 
+                                                       class="btn-icon text-blue-600 hover:bg-blue-50" title="Edit">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <form action="{{ route('teacher.lms.destroy_assignment', [$classSessions->isNotEmpty() ? $classSessions->first() : 0, $assignment]) }}" method="POST" class="delete-assignment-form">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn-icon text-red-600 hover:bg-red-50" 
+                                                                title="Hapus">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                                <div class="flex gap-2 mt-2 sm:mt-0">
+                                                    <a href="{{ route('teacher.lms.show_assignment', [$classSessions->isNotEmpty() ? $classSessions->first() : 0, $assignment]) }}" 
+                                                       class="btn-action-outline">
+                                                        <i class="fas fa-info-circle mr-2"></i> Detail
+                                                    </a>
+                                                    <a href="{{ route('teacher.lms.show_submissions', $assignment) }}" 
+                                                       class="btn-action-amber">
+                                                        <i class="fas fa-list-check mr-2"></i> Pengumpulan
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                            <button class="btn-see-all-assignments btn-action-primary mt-4 w-full text-center">
+                                Lihat Semua <i class="fas fa-chevron-down ml-2"></i>
+                            </button>
+                        @endif
                     </div>
                 @endif
             </div>
@@ -255,9 +385,7 @@
                 </div>
             @else
                 <div class="space-y-6">
-                    @foreach ($classSessions->sortBy('date')->groupBy(function($item) {
-                        return \Carbon\Carbon::parse($item->date)->translatedFormat('F Y');
-                    }) as $month => $sessions)
+                    @foreach ($classSessions->sortBy('date')->groupBy(fn($item) => \Carbon\Carbon::parse($item->date)->translatedFormat('F Y')) as $month => $sessions)
                         <div class="mb-8">
                             <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
                                 {{ $month }}
@@ -298,6 +426,115 @@
         </div>
     </div>
 </div>
+
+<!-- Include SweetAlert2 JS -->
+<script src="{{ asset('js/sweetalert2.min.js') }}"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Handle "Lihat Semua" for Materials
+    const materialsButton = document.querySelector('.btn-see-all-materials');
+    const materialsHidden = document.querySelector('.materials-hidden');
+    const assignmentsButton = document.querySelector('.btn-see-all-assignments');
+    const assignmentsHidden = document.querySelector('.assignments-hidden');
+
+    if (materialsButton && materialsHidden) {
+        materialsButton.addEventListener('click', () => {
+            materialsHidden.classList.toggle('hidden');
+            materialsButton.querySelector('i').classList.toggle('fa-chevron-down');
+            materialsButton.querySelector('i').classList.toggle('fa-chevron-up');
+            materialsButton.textContent = materialsHidden.classList.contains('hidden') 
+                ? 'Lihat Semua ' : 'Sembunyikan ';
+            const icon = document.createElement('i');
+            icon.classList.add('fas', materialsHidden.classList.contains('hidden') ? 'fa-chevron-down' : 'fa-chevron-up', 'ml-2');
+            materialsButton.appendChild(icon);
+        });
+    }
+
+    // Handle "Lihat Semua" for Assignments
+    if (assignmentsButton && assignmentsHidden) {
+        assignmentsButton.addEventListener('click', () => {
+            assignmentsHidden.classList.toggle('hidden');
+            assignmentsButton.querySelector('i').classList.toggle('fa-chevron-down');
+            assignmentsButton.querySelector('i').classList.toggle('fa-chevron-up');
+            assignmentsButton.textContent = assignmentsHidden.classList.contains('hidden') 
+                ? 'Lihat Semua ' : 'Sembunyikan ';
+            const icon = document.createElement('i');
+            icon.classList.add('fas', assignmentsHidden.classList.contains('hidden') ? 'fa-chevron-down' : 'fa-chevron-up', 'ml-2');
+            assignmentsButton.appendChild(icon);
+        });
+    }
+
+    // Handle Material Delete with SweetAlert2
+    document.querySelectorAll('.delete-material-form').forEach(form => {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: 'Materi ini akan dihapus secara permanen!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+    });
+
+    // Handle Assignment Delete with SweetAlert2
+    document.querySelectorAll('.delete-assignment-form').forEach(form => {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: 'Tugas ini akan dihapus secara permanen!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+    });
+
+    // SweetAlert2 for success message, only show if not from back/forward navigation
+    @if (session('success'))
+        if (window.performance && window.performance.navigation.type !== 2) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: '{{ session('success') }}',
+                confirmButtonColor: '#3085d6',
+                confirmButtonText: 'OK'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Clear session flash message via AJAX
+                    fetch('{{ route('teacher.lms.clear_flash') }}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Content-Type': 'application/json'
+                        }
+                    }).catch(error => console.error('Error clearing flash message:', error));
+                }
+            });
+        }
+        @php
+            session()->forget('success');
+        @endphp
+    @endif
+});
+</script>
 
 <style>
     .btn-secondary {
@@ -346,5 +583,14 @@
         -webkit-box-orient: vertical;
         overflow: hidden;
     }
+
+    .materials-hidden, .assignments-hidden {
+        transition: all 0.3s ease-in-out;
+    }
 </style>
+
+<!-- Prevent browser caching -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 @endsection
