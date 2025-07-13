@@ -91,30 +91,7 @@
             </div>
 
             <!-- File Upload Field -->
-            <div class="p-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">File Pendukung (opsional)</label>
-                <div class="flex items-center justify-center w-full">
-                    <label for="file" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                            <i class="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-2"></i>
-                            <p class="mb-2 text-sm text-gray-500">
-                                <span class="font-semibold">Klik untuk upload</span> atau drag & drop
-                            </p>
-                            <p class="text-xs text-gray-500">
-                                PDF, DOC, PPT, JPG, PNG (maks 256MB)
-                            </p>
-                        </div>
-                        <input id="file" name="file" type="file" class="hidden">
-                    </label>
-                </div>
-                <div id="file-name" class="mt-1 text-sm text-gray-500 hidden">
-                    <i class="fas fa-paperclip mr-1"></i>
-                    <span class="file-name"></span>
-                    <button type="button" class="text-red-500 ml-2" onclick="clearFileInput('file')">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            </div>
+           
 
             <!-- Submit Section -->
             <div class="p-6 bg-gray-50 border-t border-gray-200">
