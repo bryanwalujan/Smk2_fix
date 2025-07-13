@@ -32,7 +32,7 @@ class StudentLmsController extends Controller
         $recentActivities = collect();
 
         // Aktivitas dari pengumpulan tugas (Submissions)
-        $submissions = Submission::where('student_id', $student->id)
+        $submissionActivities = Submission::where('student_id', $student->id)
             ->with(['assignment.schedule.subject'])
             ->orderBy('created_at', 'desc')
             ->take(5)
@@ -47,9 +47,10 @@ class StudentLmsController extends Controller
 
         // Aktivitas dari materi yang diakses (misalnya, dari log atau riwayat akses)
         // Catatan: Karena controller tidak mencatat akses materi, kita asumsikan logika serupa
-        $materials = Material::join('schedules', 'materials.schedule_id', '=', 'schedules.id')
+        $materialActivities = Material::join('schedules', 'materials.schedule_id', '=', 'schedules.id')
             ->where('schedules.classroom_id', $student->classroom_id)
             ->select('materials.*')
+            ->with('schedule.subject') // Pastikan relasi loaded
             ->orderBy('materials.created_at', 'desc')
             ->take(5)
             ->get()
@@ -62,7 +63,8 @@ class StudentLmsController extends Controller
             });
 
         // Gabungkan dan urutkan aktivitas berdasarkan created_at
-        $recentActivities = $submissions->merge($materials)
+        // Gunakan Collection biasa, bukan Eloquent Collection
+        $recentActivities = $submissionActivities->merge($materialActivities->toArray())
             ->sortByDesc('created_at')
             ->take(5)
             ->values();
@@ -80,8 +82,8 @@ class StudentLmsController extends Controller
     {
         $student = Auth::user()->student;
         $today = Carbon::today();
-        $startOfWeek = $today->startOfWeek(Carbon::MONDAY);
-        $endOfWeek = $today->endOfWeek(Carbon::SUNDAY);
+        $startOfWeek = $today->copy()->startOfWeek(Carbon::MONDAY);
+        $endOfWeek = $today->copy()->endOfWeek(Carbon::SUNDAY);
 
         $classSessions = ClassSession::where('classroom_id', $student->classroom_id)
             ->where('subject_id', $subject->id)

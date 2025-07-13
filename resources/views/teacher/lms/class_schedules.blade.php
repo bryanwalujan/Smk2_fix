@@ -4,7 +4,7 @@
 
 @section('content')
 <!-- Include SweetAlert2 CSS -->
-
+<link href="{{ asset('css/sweetalert2.min.css') }}" rel="stylesheet">
 
 <div class="container mx-auto px-4 py-8 max-w-7xl">
     <!-- Header Utama -->
@@ -41,21 +41,42 @@
                         <i class="fas fa-arrow-left mr-2"></i>
                         <span class="hidden sm:inline">Kembali ke Dashboard</span>
                     </a>
-                    <a href="{{ route('teacher.lms.class_submissions_export', $classroom->id) }}" 
-                       class="btn-success">
-                        <i class="fas fa-file-export mr-2"></i>
-                        <span class="hidden md:inline">Unduh Nilai</span>
-                    </a>
-                    <a href="{{ route('teacher.lms.class_attendance_export', $classroom->id) }}" 
-                       class="btn-success">
-                        <i class="fas fa-file-export mr-2"></i>
-                        <span class="hidden md:inline">Unduh Absensi</span>
-                    </a>
-                    <a href="{{ route('teacher.lms.show_attendance', $classSessions->first()) }}" 
-                       class="btn-action-primary">
-                        <i class="fas fa-check-circle mr-2"></i>
-                        <span class="hidden md:inline">Kelola Absensi</span>
-                    </a>
+                    @if ($classSessions->isNotEmpty())
+                        <a href="{{ route('teacher.lms.export_class_submissions', $classSessions->first()) }}" 
+                           class="btn-success">
+                            <i class="fas fa-file-export mr-2"></i>
+                            <span class="hidden md:inline">Unduh Nilai</span>
+                        </a>
+                        <a href="{{ route('teacher.lms.class_attendance_export', $classroom->id) }}" 
+                           class="btn-success">
+                            <i class="fas fa-file-export mr-2"></i>
+                            <span class="hidden md:inline">Unduh Absensi</span>
+                        </a>
+                        <a href="{{ route('teacher.lms.show_attendance', $classSessions->first()) }}" 
+                           class="btn-action-primary">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            <span class="hidden md:inline">Kelola Absensi</span>
+                        </a>
+                    @else
+                        <button disabled 
+                                class="btn-success opacity-50 cursor-not-allowed" 
+                                title="Tidak ada sesi kelas untuk ekspor nilai">
+                            <i class="fas fa-file-export mr-2"></i>
+                            <span class="hidden md:inline">Unduh Nilai</span>
+                        </button>
+                        <button disabled 
+                                class="btn-success opacity-50 cursor-not-allowed" 
+                                title="Tidak ada sesi kelas untuk ekspor absensi">
+                            <i class="fas fa-file-export mr-2"></i>
+                            <span class="hidden md:inline">Unduh Absensi</span>
+                        </button>
+                        <button disabled 
+                                class="btn-action-primary opacity-50 cursor-not-allowed" 
+                                title="Tidak ada sesi kelas untuk mengelola absensi">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            <span class="hidden md:inline">Kelola Absensi</span>
+                        </button>
+                    @endif
                 </div>
             </div>
         </div>
@@ -280,16 +301,7 @@
                                                 </button>
                                             </form>
                                         </div>
-                                        <div class="flex gap-2 mt-2 sm:mt-0">
-                                            <a href="{{ route('teacher.lms.show_assignment', [$classSessions->isNotEmpty() ? $classSessions->first() : 0, $assignment]) }}" 
-                                               class="btn-action-outline">
-                                                <i class="fas fa-info-circle mr-2"></i> Detail
-                                            </a>
-                                            <a href="{{ route('teacher.lms.show_submissions', $assignment) }}" 
-                                               class="btn-action-amber">
-                                                <i class="fas fa-list-check mr-2"></i> Pengumpulan
-                                            </a>
-                                        </div>
+                                        
                                     </div>
                                 </div>
                             </div>
@@ -316,10 +328,7 @@
                                             </div>
                                             <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                                                 <div class="flex gap-2">
-                                                    <a href="{{ route('teacher.lms.show_submissions', $assignment) }}" 
-                                                       class="btn-icon text-amber-600 hover:bg-amber-50" title="Pengumpulan">
-                                                        <i class="fas fa-list-check"></i>
-                                                    </a>
+                                                    
                                                     <a href="{{ route('teacher.lms.show_assignment', [$classSessions->isNotEmpty() ? $classSessions->first() : 0, $assignment]) }}" 
                                                        class="btn-icon text-blue-600 hover:bg-blue-50" title="Lihat">
                                                         <i class="fas fa-eye"></i>
@@ -342,10 +351,7 @@
                                                        class="btn-action-outline">
                                                         <i class="fas fa-info-circle mr-2"></i> Detail
                                                     </a>
-                                                    <a href="{{ route('teacher.lms.show_submissions', $assignment) }}" 
-                                                       class="btn-action-amber">
-                                                        <i class="fas fa-list-check mr-2"></i> Pengumpulan
-                                                    </a>
+                                                    
                                                 </div>
                                             </div>
                                         </div>

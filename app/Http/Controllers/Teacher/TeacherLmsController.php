@@ -686,33 +686,26 @@ class TeacherLmsController extends Controller
 
         $this->authorizeTeacher($classSession);
 
-        // Cari schedule berdasarkan atribut
-        $schedule = Schedule::where('teacher_id', $classSession->teacher_id)
+        $schedule = Schedule::where('subject_id', $classSession->subject_id)
             ->where('classroom_id', $classSession->classroom_id)
-            ->where('subject_id', $classSession->subject_id)
-            ->where('day', $classSession->day_of_week)
-            ->whereRaw('TIME_FORMAT(start_time, "%H:%i") = TIME_FORMAT(?, "%H:%i")', [$classSession->start_time])
-            ->whereRaw('TIME_FORMAT(end_time, "%H:%i") = TIME_FORMAT(?, "%H:%i")', [$classSession->end_time])
+            ->where('start_time', $classSession->start_time)
+            ->where('end_time', $classSession->end_time)
             ->first();
 
         if (!$schedule) {
             Log::warning('Schedule not found for class session', [
                 'class_session_id' => $classSession->id,
-                'teacher_id' => $classSession->teacher_id,
-                'classroom_id' => $classSession->classroom_id,
                 'subject_id' => $classSession->subject_id,
-                'day_of_week' => $classSession->day_of_week,
-                'start_time' => $classSession->start_time,
-                'end_time' => $classSession->end_time,
+                'classroom_id' => $classSession->classroom_id,
             ]);
             return redirect()->route('teacher.lms.index')
                 ->with('error', 'Jadwal tidak ditemukan untuk sesi kelas ini.');
         }
 
-        $classroomName = $classSession->classroom->full_name ?? 'Unknown';
+        $classroomName = $classSession->classroom->name;
         $fileName = 'Nilai_Kelas_' . str_replace(' ', '_', $classroomName) . '.xlsx';
 
-        return Excel::download(new ClassSubmissionsExport($classSession), $fileName);
+        return Excel::download(new \App\Exports\ClassSubmissionsExport($classSession), $fileName);
     }
 
     public function exportClassAttendance($classroom_id)
@@ -741,9 +734,11 @@ class TeacherLmsController extends Controller
 
         // Ambil semua siswa di kelas ini
         $students = Student::where('classroom_id', $classroom_id)
-            ->with(['attendances' => function ($query) use ($classSessions) {
-                $query->whereIn('tanggal', $classSessions);
-            }])
+            ->with([
+                'attendances' => function ($query) use ($classSessions) {
+                    $query->whereIn('tanggal', $classSessions);
+                }
+            ])
             ->get();
 
         Log::info('Export Class Attendance', [
@@ -766,8 +761,8 @@ class TeacherLmsController extends Controller
         }
     }
     public function clearFlash(Request $request)
-{
-    session()->forget('success');
-    return response()->json(['status' => 'success']);
-}
+    {
+        session()->forget('success');
+        return response()->json(['status' => 'success']);
+    }
 }

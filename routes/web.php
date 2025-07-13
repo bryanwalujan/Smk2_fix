@@ -118,49 +118,32 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/', [App\Http\Controllers\Teacher\TeacherLmsController::class, 'index'])->name('teacher.lms.index');
             Route::get('/class/{classroom_id}/schedules', [App\Http\Controllers\Teacher\TeacherLmsController::class, 'showClassSchedules'])->name('teacher.lms.class_schedules');
             Route::post('/teacher/lms/clear-flash', [TeacherLmsController::class, 'clearFlash'])->name('teacher.lms.clear_flash');
-
-        });
-        Route::prefix('teacher/lms')->middleware(['auth', 'role:teacher'])->group(function () {
             Route::get('/', [App\Http\Controllers\Teacher\TeacherLmsController::class, 'index'])->name('teacher.lms.index');
             Route::get('/class/{classroom_id}/schedules', [App\Http\Controllers\Teacher\TeacherLmsController::class, 'showClassSchedules'])->name('teacher.lms.class_schedules');
             Route::get('/class/{classroom_id}/submissions/export', [App\Http\Controllers\Teacher\TeacherLmsController::class, 'exportClassSubmissions'])->name('teacher.lms.class_submissions_export');
             Route::get('/class/{classroom_id}/attendance/export', [App\Http\Controllers\Teacher\TeacherLmsController::class, 'exportClassAttendance'])->name('teacher.lms.class_attendance_export');
-            // Rute lainnya...
+
         });
     });
 
-    Route::middleware(['auth', 'role:student'])->prefix('student')->group(function () {
-        Route::get('/dashboard', function () {
-            return view('student.dashboard');
-        })->name('student.dashboard');
-
+   Route::prefix('student')->middleware(['auth', 'spatie.role:student'])->group(function () {
+        Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('student.dashboard');
         Route::get('/scan', function () {
             return view('scan.scan');
         })->name('student.scan');
-
         Route::prefix('lms')->name('lms.')->group(function () {
             Route::get('/', [StudentLmsController::class, 'index'])->name('index');
             Route::get('/sessions/{classSession}', [StudentLmsController::class, 'showSession'])->name('show_session');
+            Route::get('/subjects/{subject}/sessions', [StudentLmsController::class, 'subjectSessions'])->name('subject_sessions');
+            Route::get('/subjects/{subject}/materials', [StudentLmsController::class, 'subjectMaterials'])->name('subject_materials');
+            Route::get('/subjects/{subject}/materials/{material}', [StudentLmsController::class, 'showMaterial'])->name('show_material');
+            Route::get('/subjects/{subject}/assignments', [StudentLmsController::class, 'subjectAssignments'])->name('subject_assignments');
+            Route::get('/subjects/{subject}/assignments/{assignment}', [StudentLmsController::class, 'showAssignment'])->name('show_assignment');
             Route::get('/assignments/{assignment}/submit', [StudentLmsController::class, 'createSubmission'])->name('create_submission');
             Route::post('/assignments/{assignment}/submit', [StudentLmsController::class, 'storeSubmission'])->name('store_submission');
-            Route::get('/subjects/{subject}/sessions', [StudentLmsController::class, 'subjectSessions'])->name('subject_sessions');
         });
     });
-    Route::middleware(['auth', 'role:student'])->group(function () {
-        Route::get('/lms', [StudentLmsController::class, 'index'])->name('lms.index');
-        Route::get('/lms/subjects/{subject}/sessions', [StudentLmsController::class, 'subjectSessions'])->name('lms.subject_sessions');
-        Route::get('/lms/sessions/{classSession}', [StudentLmsController::class, 'showSession'])->name('lms.show_session');
-        Route::get('/lms/subjects/{subject}/materials', [StudentLmsController::class, 'subjectMaterials'])->name('lms.subject_materials');
-        Route::get('/lms/subjects/{subject}/materials/{material}', [StudentLmsController::class, 'showMaterial'])->name('lms.show_material');
-        Route::get('/lms/subjects/{subject}/assignments', [StudentLmsController::class, 'subjectAssignments'])->name('lms.subject_assignments');
-        Route::get('/lms/subjects/{subject}/assignments/{assignment}', [StudentLmsController::class, 'showAssignment'])->name('lms.show_assignment');
-        Route::get('/lms/assignments/{assignment}/submission', [StudentLmsController::class, 'createSubmission'])->name('lms.create_submission');
-        Route::post('/lms/assignments/{assignment}/submission', [StudentLmsController::class, 'storeSubmission'])->name('lms.store_submission');
-        Route::get('/student/dashboard', [StudentDashboardController::class, 'index'])->name('student.dashboard');
-       
-    });
 });
-
 Route::get('/scan', [PublicAttendanceController::class, 'scan'])->name('public.attendance.scan');
 Route::post('/scan', [PublicAttendanceController::class, 'processScan'])->name('public.attendance.scan.post');
 Route::get('/student/scan', function () {

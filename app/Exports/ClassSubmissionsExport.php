@@ -21,7 +21,7 @@ class ClassSubmissionsExport implements FromCollection, WithHeadings, WithMappin
     {
         $this->classSession = $classSession;
         // Ambil semua tugas terkait kelas melalui schedule
-        $schedule = $classSession->schedule;
+        $schedule = $classSession->schedule()->first();
         $this->assignments = $schedule ? Assignment::where('schedule_id', $schedule->id)->get() : collect([]);
     }
 
