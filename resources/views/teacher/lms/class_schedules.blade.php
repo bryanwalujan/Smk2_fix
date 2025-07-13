@@ -1,6 +1,6 @@
 @extends('layouts.appguru')
 
-@section('title', 'Jadwal Kelas {{ $classroom->full_name }}')
+@section('title', 'Jadwal Kelas '. $classroom->full_name)
 
 @section('content')
 <!-- Include SweetAlert2 CSS -->

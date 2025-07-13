@@ -246,29 +246,23 @@
                                                             @endif
                                                         </td>
                                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                            <div class="flex space-x-2">
-                                                                <a href="{{ route('students.edit', $student->id) }}" class="text-blue-600 hover:text-blue-900">Edit</a>
-                                                                <form action="{{ route('students.destroy', $student->id) }}" method="POST" class="inline delete-form">
-                                                                    @csrf
-                                                                    @method('DELETE')
-                                                                    <button type="submit" class="text-red-600 hover:text-red-900" onclick="event.preventDefault(); Swal.fire({
-                                                                        title: 'Yakin ingin menghapus?',
-                                                                        text: 'Data siswa {{ $student->name }} akan dihapus secara permanen!',
-                                                                        icon: 'warning',
-                                                                        showCancelButton: true,
-                                                                        confirmButtonColor: '#dc2626',
-                                                                        cancelButtonColor: '#6b7280',
-                                                                        confirmButtonText: 'Ya, Hapus!',
-                                                                        cancelButtonText: 'Batal',
-                                                                        reverseButtons: true
-                                                                    }).then((result) => {
-                                                                        if (result.isConfirmed) {
-                                                                            this.closest('form').submit();
-                                                                        }
-                                                                    });">Hapus</button>
-                                                                </form>
-                                                            </div>
-                                                        </td>
+    <div class="flex space-x-3">
+        <a href="{{ route('students.edit', $student->id) }}" 
+           class="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50 transition-colors duration-200"
+           title="Edit">
+            <i class="fas fa-pencil-alt"></i>
+        </a>
+        <form action="{{ route('students.destroy', $student->id) }}" method="POST" class="inline delete-form">
+            @csrf
+            @method('DELETE')
+            <button type="submit" 
+                    class="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-50 transition-colors duration-200"
+                    title="Hapus">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        </form>
+    </div>
+</td>
                                                     </tr>
                                                 @endforeach
                                             </tbody>
@@ -295,6 +289,36 @@
 
     <script src="{{ asset('js/sweetalert2.min.js') }}"></script>
     <script>
+        document.querySelectorAll('.delete-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const studentName = this.closest('tr').querySelector('td:nth-child(2)').textContent;
+        
+        Swal.fire({
+            title: 'Yakin ingin menghapus?',
+            text: `Data siswa ${studentName} akan dihapus secara permanen!`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Ya, Hapus!',
+            cancelButtonText: 'Batal',
+            reverseButtons: true,
+            background: '#f9fafb',
+            customClass: {
+                popup: 'rounded-xl shadow-lg',
+                title: 'text-xl font-bold text-gray-800',
+                content: 'text-gray-600',
+                confirmButton: 'px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition',
+                cancelButton: 'px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
+    });
+});
         document.addEventListener('DOMContentLoaded', function () {
             @if (session('success'))
                 Swal.fire({

@@ -220,15 +220,23 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <div class="flex space-x-2">
-                                        <a href="{{ route('teachers.edit', $teacher->id) }}" class="text-blue-600 hover:text-blue-900 edit-button" data-id="{{ $teacher->id }}">Edit</a>
-                                        <form action="{{ route('teachers.destroy', $teacher->id) }}" method="POST" class="inline delete-form">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-red-600 hover:text-red-900">Hapus</button>
-                                        </form>
-                                    </div>
-                                </td>
+    <div class="flex space-x-3">
+        <a href="{{ route('teachers.edit', $teacher->id) }}" 
+           class="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50 transition-colors duration-200"
+           title="Edit">
+            <i class="fas fa-pencil-alt"></i>
+        </a>
+        <form action="{{ route('teachers.destroy', $teacher->id) }}" method="POST" class="inline delete-form">
+            @csrf
+            @method('DELETE')
+            <button type="submit" 
+                    class="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-50 transition-colors duration-200"
+                    title="Hapus">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        </form>
+    </div>
+</td>
                             </tr>
                         @endforeach
                     </tbody>
