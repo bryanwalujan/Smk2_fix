@@ -103,7 +103,7 @@
                                 <p class="pl-1">atau drag and drop</p>
                             </div>
                             <p class="text-xs text-gray-500">
-                                PDF, DOC, atau DOCX (maksimal 2MB)
+                                PDF, DOC, atau DOCX 
                             </p>
                         </div>
                     </div>

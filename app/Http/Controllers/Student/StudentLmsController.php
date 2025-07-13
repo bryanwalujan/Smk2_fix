@@ -20,13 +20,44 @@ class StudentLmsController extends Controller
     public function index()
     {
         $student = Auth::user()->student;
-        $subjects = ClassSession::where('classroom_id', $student->classroom_id)
-            ->with('subject')
+
+        // Debugging: Log student data
+        Log::info('Student data', [
+            'user_id' => Auth::id(),
+            'student_id' => $student->id,
+            'classroom_id' => $student->classroom_id,
+        ]);
+
+        // Ambil subjects dengan memastikan relasi subject valid
+        $subjectsQuery = ClassSession::where('classroom_id', $student->classroom_id)
+            ->has('subject')
+            ->with(['subject' => function ($query) {
+                $query->select('id', 'name');
+            }])
             ->select('subject_id')
-            ->distinct()
-            ->get()
+            ->distinct();
+
+        // Debugging: Log query hasil
+        $classSessions = $subjectsQuery->get();
+        Log::info('ClassSession data', [
+            'class_sessions' => $classSessions->map(fn($session) => [
+                'id' => $session->id,
+                'subject_id' => $session->subject_id,
+                'subject' => $session->subject ? ['id' => $session->subject->id, 'name' => $session->subject->name] : null,
+            ])->toArray(),
+        ]);
+
+        $subjects = $classSessions
             ->pluck('subject')
-            ->filter();
+            ->filter(fn($subject) => $subject instanceof \App\Models\Subject)
+            ->unique('id')
+            ->values();
+
+        // Debugging: Log subjects setelah filter
+        Log::info('Filtered subjects', [
+            'subjects' => $subjects->map(fn($subject) => ['id' => $subject->id, 'name' => $subject->name])->toArray(),
+            'subjects_count' => $subjects->count(),
+        ]);
 
         // Kumpulkan aktivitas terkini
         $recentActivities = collect();
@@ -37,42 +68,56 @@ class StudentLmsController extends Controller
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get()
+            ->filter(function ($submission) {
+                // Pastikan semua relasi valid
+                return $submission->assignment &&
+                       $submission->assignment->schedule &&
+                       $submission->assignment->schedule->subject;
+            })
             ->map(function ($submission) {
+                $title = $submission->assignment->title ?? 'Tugas Tanpa Nama';
+                $subjectName = $submission->assignment->schedule->subject->name ?? 'Unknown';
                 return [
                     'type' => 'task_completed',
-                    'description' => 'Anda menyelesaikan tugas <span class="font-semibold">' . ($submission->assignment->title ?? 'Tugas Tanpa Nama') . '</span> untuk mata pelajaran <span class="font-semibold">' . ($submission->assignment->schedule->subject->name ?? 'Unknown') . '</span>',
+                    'description' => "Anda menyelesaikan tugas <span class=\"font-semibold\">{$title}</span> untuk mata pelajaran <span class=\"font-semibold\">{$subjectName}</span>",
                     'created_at' => $submission->created_at,
                 ];
             });
 
-        // Aktivitas dari materi yang diakses (misalnya, dari log atau riwayat akses)
-        // Catatan: Karena controller tidak mencatat akses materi, kita asumsikan logika serupa
+        // Aktivitas dari materi yang diakses
         $materialActivities = Material::join('schedules', 'materials.schedule_id', '=', 'schedules.id')
             ->where('schedules.classroom_id', $student->classroom_id)
             ->select('materials.*')
-            ->with('schedule.subject') // Pastikan relasi loaded
+            ->with(['schedule.subject' => function ($query) {
+                $query->select('id', 'name');
+            }])
             ->orderBy('materials.created_at', 'desc')
             ->take(5)
             ->get()
+            ->filter(function ($material) {
+                // Pastikan semua relasi valid
+                return $material->schedule && $material->schedule->subject;
+            })
             ->map(function ($material) {
+                $title = $material->title ?? 'Materi Tanpa Nama';
+                $subjectName = $material->schedule->subject->name ?? 'Unknown';
                 return [
                     'type' => 'material_viewed',
-                    'description' => 'Materi baru tersedia: <span class="font-semibold">' . ($material->title ?? 'Materi Tanpa Nama') . '</span> untuk mata pelajaran <span class="font-semibold">' . ($material->schedule->subject->name ?? 'Unknown') . '</span>',
+                    'description' => "Materi baru tersedia: <span class=\"font-semibold\">{$title}</span> untuk mata pelajaran <span class=\"font-semibold\">{$subjectName}</span>",
                     'created_at' => $material->created_at,
                 ];
             });
 
-        // Gabungkan dan urutkan aktivitas berdasarkan created_at
-        // Gunakan Collection biasa, bukan Eloquent Collection
-        $recentActivities = $submissionActivities->merge($materialActivities->toArray())
+        // Gabungkan dan urutkan aktivitas
+        $recentActivities = collect()->merge($submissionActivities)->merge($materialActivities)
             ->sortByDesc('created_at')
             ->take(5)
             ->values();
 
-        Log::info('Showing student dashboard', [
-            'user_id' => Auth::id(),
-            'subjects_count' => $subjects->count(),
+        // Debugging: Log aktivitas
+        Log::info('Recent activities', [
             'activities_count' => $recentActivities->count(),
+            'activities' => $recentActivities->toArray(),
         ]);
 
         return view('student.lms.index', compact('subjects', 'recentActivities'));
@@ -295,7 +340,7 @@ class StudentLmsController extends Controller
         }
 
         $request->validate([
-            'file' => 'nullable|file|mimes:pdf,doc,docx|max:2048',
+            'file' => 'nullable|file|mimes:pdf,doc,docx|max:200048',
             'notes' => 'nullable|string|max:500',
         ]);
 
