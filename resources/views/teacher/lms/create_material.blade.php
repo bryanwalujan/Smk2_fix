@@ -215,26 +215,7 @@
             </div>
             
             <!-- File -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">File Pendukung (opsional)</label>
-                <div class=" Dining flex items-center justify-center w-full">
-                    <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                        <div class="flex flex-col items-center justify-center pt-3 pb-4">
-                            <i class="fas fa-cloud-upload-alt text-gray-400 text-xl mb-1"></i>
-                            <p class="text-xs text-gray-500">Upload file pendukung</p>
-                        </div>
-                        <input type="file" name="assignments[0][file]" class="hidden" 
-                               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
-                    </label>
-                </div>
-                <div class="assignment-file-name mt-1 text-sm text-gray-500 hidden">
-                    <i class="fas fa-paperclip mr-1"></i>
-                    <span class="file-name"></span>
-                    <button type="button" class="text-red-500 ml-2">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            </div>
+            
         </div>
     </div>
 

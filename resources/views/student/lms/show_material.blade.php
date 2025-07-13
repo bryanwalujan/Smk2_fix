@@ -40,8 +40,8 @@
                     Deskripsi Materi
                 </h2>
                 <div class="prose max-w-none text-gray-600">
-                    @if($material->description)
-                        {!! nl2br(e($material->description)) !!}
+                    @if($material->content)
+                         {!! $material->content !!}
                     @else
                         <p class="text-gray-400 italic">Tidak ada deskripsi materi</p>
                     @endif
@@ -81,25 +81,10 @@
             @endif
 
             <!-- Content Section -->
-            @if($material->content)
-            <div class="mb-8">
-                <h2 class="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200 flex items-center">
-                    <i class="fas fa-file-alt text-green-600 mr-2"></i>
-                    Isi Materi
-                </h2>
-                <div class="prose max-w-none text-gray-600">
-                    {!! $material->content !!}
-                </div>
-            </div>
-            @endif
-
+            
             <!-- Metadata Section -->
             <div class="pt-4 border-t border-gray-200">
                 <div class="flex flex-wrap gap-4 text-sm text-gray-500">
-                    <div class="flex items-center">
-                        <i class="fas fa-user-tie mr-2 text-green-500"></i>
-                        Dibuat oleh: {{ $material->teacher->user->name ?? 'Admin' }}
-                    </div>
                     <div class="flex items-center">
                         <i class="fas fa-calendar-alt mr-2 text-green-500"></i>
                         Dibuat pada: {{ $material->created_at->translatedFormat('l, d F Y') }}
