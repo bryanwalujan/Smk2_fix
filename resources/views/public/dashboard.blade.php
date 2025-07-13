@@ -1,3 +1,4 @@
+
 @extends('layouts.public')
 
 @section('title', 'Dashboard')
@@ -5,8 +6,6 @@
 @section('content')
 <!-- Font Awesome Icons -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-
 
 <div class="flex flex-col md:flex-row min-h-screen">
     <!-- Sidebar -->
@@ -41,6 +40,12 @@
                     <a href="#about-us" class="flex items-center px-4 py-3 text-gray-700 hover:bg-school-red hover:text-white transition group">
                         <i class="fas fa-info-circle w-6 text-center group-hover:text-white text-school-red mr-3"></i>
                         <span>Tentang Kami</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('public.attendance.scan') }}" class="flex items-center px-4 py-3 text-gray-700 hover:bg-school-red hover:text-white transition group">
+                        <i class="fas fa-qrcode w-6 text-center group-hover:text-white text-school-red mr-3"></i>
+                        <span>Scan Absensi</span>
                     </a>
                 </li>
             </ul>
@@ -84,6 +89,9 @@
             <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-6">
                 <h2 class="text-2xl font-bold text-white">Selamat Datang di SMK Negeri 2 Tondano</h2>
                 <p class="text-white opacity-90">Sekolah Berbasis Teknologi dan Industri</p>
+                <a href="{{ route('public.attendance.scan') }}" class="mt-4 inline-flex items-center px-4 py-2 bg-school-red text-white rounded-lg hover:bg-red-800 transition">
+                    <i class="fas fa-qrcode mr-2"></i> Scan Absensi
+                </a>
             </div>
         </div>
 
@@ -401,6 +409,7 @@
             <div>
                 <h4 class="text-lg font-semibold mb-4">Tautan Cepat</h4>
                 <ul class="space-y-2">
+                    <li><a href="{{ route('public.attendance.scan') }}" class="text-red-100 hover:text-white transition">Scan Absensi</a></li>
                     <li><a href="#" class="text-red-100 hover:text-white transition">PPDB Online</a></li>
                     <li><a href="#" class="text-red-100 hover:text-white transition">E-Learning</a></li>
                     <li><a href="#" class="text-red-100 hover:text-white transition">Perpustakaan Digital</a></li>
@@ -446,7 +455,7 @@
         </div>
         
         <div class="border-t border-red-400 mt-8 pt-6 text-center text-red-200">
-            <p>&copy; 2025 SMK Negeri 2 Tondano. Hak Cipta Dilindungi.</p>
+            <p>© 2025 SMK Negeri 2 Tondano. Hak Cipta Dilindungi.</p>
         </div>
     </div>
 </footer>

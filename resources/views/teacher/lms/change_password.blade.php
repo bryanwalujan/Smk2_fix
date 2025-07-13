@@ -49,7 +49,7 @@
 
     <!-- Form Section -->
     <div class="bg-white p-6 rounded-lg shadow-sm">
-        <form method="POST" action="{{ route('teacher.lms.change_password.store') }}">
+        <form method="POST" action="{{ route('lms.change_password.store') }}">
             @csrf
             
             <!-- Current Password Field -->

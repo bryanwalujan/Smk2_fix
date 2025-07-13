@@ -6,13 +6,18 @@
     <title>Login - SMKN 3 TONDANO</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Tambahkan Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-gray-50 font-['Poppins']">
     <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-lg shadow-xl">
             <div class="text-center">
-                <img src="{{ asset('images/logo.png') }}" alt="Logo SMKN 3 TONDANO" class="mx-auto h-18 w-auto">
-                <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
+                <!-- Ikon sekolah dari Font Awesome -->
+                <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4">
+                    <i class="fas fa-school text-blue-600 text-3xl"></i>
+                </div>
+                <h2 class="mt-2 text-3xl font-extrabold text-gray-900">
                     SMKN 3 TONDANO
                 </h2>
                 <p class="mt-2 text-sm text-gray-600">

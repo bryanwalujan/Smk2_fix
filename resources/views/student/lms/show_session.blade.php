@@ -1,83 +1,47 @@
-<!DOCTYPE html>
-     <html lang="id">
-     <head>
-         <title>Detail Sesi Kelas</title>
-         <style>
-             body { font-family: Arial, sans-serif; margin: 50px; }
-             table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
-             th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-             th { background-color: #f2f2f2; }
-             a { color: blue; margin-right: 10px; }
-             .logout-form { display: inline; }
-         </style>
-     </head>
-     <body>
-         <div style="margin-bottom: 20px;">
-             <a href="{{ route('student.lms.index') }}">Kembali ke LMS</a>
-             <form action="{{ route('logout') }}" method="POST" class="logout-form">
-                 @csrf
-                 <button type="submit" style="background: none; border: none; color: blue; cursor: pointer; padding: 0;">Logout</button>
-             </form>
-         </div>
-         <h2>Sesi: {{ $classSession->title }}</h2>
-         <p>Kelas: {{ $classSession->classroom->full_name }}</p>
-         <p>Mata Pelajaran: {{ $classSession->subject_name }}</p>
-         <p>Waktu: {{ \Carbon\Carbon::parse($classSession->start_time)->translatedFormat('l H:i') }}-{{ \Carbon\Carbon::parse($classSession->end_time)->format('H:i') }}</p>
-         <h3>Materi</h3>
-         @if ($classSession->materials->isEmpty())
-             <p>Tidak ada materi.</p>
-         @else
-             <ul>
-                 @foreach ($classSession->materials as $material)
-                 <li>
-                     {{ $material->title }}
-                     @if ($material->file_path)
-                         <a href="{{ Storage::url($material->file_path) }}" target="_blank">Unduh</a>
-                     @endif
-                     @if ($material->content)
-                         <p>{{ $material->content }}</p>
-                     @endif
-                 </li>
-                 @endforeach
-             </ul>
-         @endif
-         <h3>Tugas</h3>
-         @if ($classSession->assignments->isEmpty())
-             <p>Tidak ada tugas.</p>
-         @else
-             <table>
-                 <thead>
-                     <tr>
-                         <th>Judul</th>
-                         <th>Deskripsi</th>
-                         <th>Tenggat Waktu</th>
-                         <th>Status</th>
-                         <th>Aksi</th>
-                     </tr>
-                 </thead>
-                 <tbody>
-                     @foreach ($classSession->assignments as $assignment)
-                         <tr>
-                             <td>{{ $assignment->title }}</td>
-                             <td>{{ $assignment->description }}</td>
-                             <td>{{ \Carbon\Carbon::parse($assignment->deadline)->translatedFormat('l H:i') }}</td>
-                             <td>
-                                 @if ($assignment->submissions->where('student_id', auth()->user()->student->id)->isNotEmpty())
-                                     Sudah Dikumpulkan
-                                 @elseif ($assignment->deadline < now())
-                                     Tenggat Waktu Lewat
-                                 @else
-                                     Belum Dikumpulkan
-                                 @endif
-                             </td>
-                             <td>
-                                 @if ($assignment->submissions->where('student_id', auth()->user()->student->id)->isEmpty() && $assignment->deadline >= now())
-                                     <a href="{{ route('student.lms.create_submission', $assignment) }}">Kumpulkan"</a>
-                                 @endif
-                             </td>
-                         </tr>
-                     @endforeach
-                 </tbody>
-             </table>
-         @endif
-     </body>
+@extends('layouts.appstudent')
+
+@section('title', 'Detail Sesi {{ $classSession->subject->name }}')
+
+@section('content')
+<div class="container mx-auto px-4 py-6">
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <!-- Header Section -->
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Sesi: {{ $classSession->subject->name ?? 'Tidak ada mata pelajaran' }}</h2>
+                    <div class="mt-2 space-y-1">
+                        <p class="text-gray-600">
+                            <span class="font-medium">Kelas:</span> {{ $classSession->classroom->full_name ?? 'Tidak ada kelas' }}
+                        </p>
+                        <p class="text-gray-600">
+                            <span class="font-medium">Mata Pelajaran:</span> {{ $classSession->subject->name ?? 'Tidak ada mata pelajaran' }}
+                        </p>
+                        <p class="text-gray-600">
+                            <span class="font-medium">Tanggal:</span> {{ \Carbon\Carbon::parse($classSession->date)->translatedFormat('l, d F Y') }}
+                        </p>
+                        <p class="text-gray-600">
+                            <span class="font-medium">Waktu:</span> 
+                            {{ \Carbon\Carbon::parse($classSession->start_time)->translatedFormat('H:i') }} - 
+                            {{ \Carbon\Carbon::parse($classSession->end_time)->format('H:i') }}
+                        </p>
+                        <p class="text-gray-600">
+                            <span class="font-medium">Guru:</span> {{ $classSession->teacher->name ?? 'Tidak ada guru' }}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex space-x-2">
+                    <a href="{{ route('lms.subject_sessions', $classSession->subject_id) }}" 
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Kembali ke Pertemuan
+                    </a>
+                    <a href="{{ route('lms.index') }}" 
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Kembali ke LMS
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection

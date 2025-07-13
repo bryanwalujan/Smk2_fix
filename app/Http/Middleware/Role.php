@@ -1,19 +1,33 @@
 <?php
 
-     namespace App\Http\Middleware;
+namespace App\Http\Middleware;
 
-     use Closure;
-     use Illuminate\Http\Request;
-     use Illuminate\Support\Facades\Auth;
+use Closure;
+use Illuminate\Http\Request;
+use Spatie\Permission\Exceptions\UnauthorizedException;
 
-     class Role
-     {
-         public function handle(Request $request, Closure $next, string $role)
-         {
-             if (Auth::check() && Auth::user()->role === $role) {
-                 return $next($request);
-             }
+class Role
+{
+    public function handle(Request $request, Closure $next, $role, $guard = null)
+    {
+        $authGuard = \Auth::guard($guard);
 
-             return redirect('/login')->withErrors(['email' => 'Akses tidak diizinkan.']);
-         }
-     }
+        if ($authGuard->guest()) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+            }
+            return redirect()->guest('login');
+        }
+
+        $roles = is_array($role) ? $role : explode('|', $role);
+
+        if (!$authGuard->user()->hasAnyRole($roles)) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+            }
+            abort(403, 'Unauthorized action.');
+        }
+
+        return $next($request);
+    }
+}

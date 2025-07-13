@@ -6,12 +6,19 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
-        .select2-container--default .select2-selection--single {
+        .select2-container--default .select2-selection--single,
+        .select2-container--default .select2-selection--multiple {
             height: 42px;
             padding-top: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
         }
         .select2-container--default .select2-selection--single .select2-selection__arrow {
             height: 40px;
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background-color: #e5e7eb;
+            border: 1px solid #d1d5db;
         }
     </style>
 </head>
@@ -43,6 +50,20 @@
                     </div>
                 </div>
             @endif
+            @if (session('error'))
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">{{ session('error') }}</h3>
+                        </div>
+                    </div>
+                </div>
+            @endif
             
             <form method="POST" action="{{ route('teachers.store') }}">
                 @csrf
@@ -70,10 +91,14 @@
                     </div>
                     
                     <div>
-                        <label for="subjects" class="block text-sm font-medium text-gray-700">Mata Pelajaran (pisahkan dengan koma)</label>
-                        <input type="text" id="subjects" name="subjects" placeholder="Contoh: Matematika, Bahasa Inggris" required 
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
-                            value="{{ old('subjects') }}">
+                        <label for="subject_ids" class="block text-sm font-medium text-gray-700">Mata Pelajaran</label>
+                        <select id="subject_ids" name="subject_ids[]" multiple required 
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            @foreach ($subjects as $subject)
+                                <option value="{{ $subject->id }}">{{ $subject->name }}</option>
+                            @endforeach
+                        </select>
+                        <p class="mt-1 text-sm text-gray-500">Pilih mata pelajaran yang diajar</p>
                     </div>
                     
                     <div>
@@ -98,7 +123,6 @@
                             <button type="submit" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                                 <i class="fas fa-save mr-2"></i> Simpan
                             </button>
-                            
                         </div>
                     </div>
                 </div>
@@ -112,6 +136,11 @@
         $(document).ready(function() {
             $('#classroom').select2({
                 placeholder: "-- Pilih Kelas --",
+                allowClear: true,
+                width: '100%'
+            });
+            $('#subject_ids').select2({
+                placeholder: "-- Pilih Mata Pelajaran --",
                 allowClear: true,
                 width: '100%'
             });
