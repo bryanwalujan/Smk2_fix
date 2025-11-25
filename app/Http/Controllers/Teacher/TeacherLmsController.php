@@ -679,33 +679,35 @@ class TeacherLmsController extends Controller
 
     public function exportClassSubmissions(ClassSession $classSession)
     {
-        Log::info('Export Class Submissions', [
+        $teacher = Auth::user()->teacher;
+        Log::info('Attempting to export class submissions', [
             'class_session_id' => $classSession->id,
             'classroom_id' => $classSession->classroom_id,
+            'teacher_id' => $teacher->id,
+            'subject_id' => $classSession->subject_id,
         ]);
 
-        $this->authorizeTeacher($classSession);
-
-        $schedule = Schedule::where('subject_id', $classSession->subject_id)
+        // Pastikan guru memiliki akses ke kelas ini
+        $hasAccess = Schedule::where('teacher_id', $teacher->id)
             ->where('classroom_id', $classSession->classroom_id)
-            ->where('start_time', $classSession->start_time)
-            ->where('end_time', $classSession->end_time)
-            ->first();
+            ->exists();
 
-        if (!$schedule) {
-            Log::warning('Schedule not found for class session', [
+        if (!$hasAccess) {
+            Log::warning('Unauthorized access to export class submissions', [
                 'class_session_id' => $classSession->id,
-                'subject_id' => $classSession->subject_id,
                 'classroom_id' => $classSession->classroom_id,
+                'teacher_id' => $teacher->id,
+                'schedules' => Schedule::where('teacher_id', $teacher->id)->get()->toArray(),
             ]);
             return redirect()->route('teacher.lms.index')
-                ->with('error', 'Jadwal tidak ditemukan untuk sesi kelas ini.');
+                ->with('error', 'Anda tidak memiliki akses untuk mengekspor nilai kelas ini.');
         }
 
-        $classroomName = $classSession->classroom->name;
-        $fileName = 'Nilai_Kelas_' . str_replace(' ', '_', $classroomName) . '.xlsx';
+        $classroomName = $classSession->classroom ? $classSession->classroom->full_name : 'Unknown';
+        $subjectName = $classSession->subject ? $classSession->subject->name : 'Unknown';
+        $fileName = 'Nilai_' . str_replace(' ', '_', $classroomName) . '_' . str_replace(' ', '_', $subjectName) . '.xlsx';
 
-        return Excel::download(new \App\Exports\ClassSubmissionsExport($classSession), $fileName);
+        return Excel::download(new ClassSubmissionsExport($classSession), $fileName);
     }
 
     public function exportClassAttendance($classroom_id)
@@ -756,10 +758,17 @@ class TeacherLmsController extends Controller
 
     protected function authorizeTeacher(ClassSession $classSession)
     {
-        if ($classSession->teacher_id !== Auth::user()->teacher->id) {
-            abort(403, 'Unauthorized');
+        $teacher = Auth::user()->teacher;
+        if (!$teacher || $classSession->teacher_id !== $teacher->id) {
+            Log::warning('Teacher authorization failed', [
+                'class_session_id' => $classSession->id,
+                'session_teacher_id' => $classSession->teacher_id,
+                'authenticated_teacher_id' => $teacher ? $teacher->id : null,
+            ]);
+            abort(403, 'Anda tidak memiliki akses ke sesi kelas ini.');
         }
     }
+
     public function clearFlash(Request $request)
     {
         session()->forget('success');

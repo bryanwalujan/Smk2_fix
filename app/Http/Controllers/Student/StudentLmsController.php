@@ -340,7 +340,7 @@ class StudentLmsController extends Controller
         }
 
         $request->validate([
-            'file' => 'nullable|file|mimes:pdf,doc,docx|max:2048',
+            'file' => 'nullable|file|mimes:pdf,doc,docx|max:200048',
             'notes' => 'nullable|string|max:500',
         ]);
 
